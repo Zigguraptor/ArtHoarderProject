@@ -1,0 +1,13 @@
+{
+  "MetaFilesDirectory": ".ArtGCS",
+  "MainDBName": "ArtGCS.db",
+  "PHashDbsDir": "Perceptual hashes",
+  "UsersDirectoryName": "users",
+  "SQLFilesDirectory": "SQL",
+  "LogDirectoryName": "Logs",
+  "FilesWithoutSource": "Files Without Source",
+  "ParsersConfigsDirectory": "ParsersConfigs",
+  "ChangesAuditDbName": "ChangesAudit.db",
+  "DefaultOtherFolderName": "Default Other Folder"
+}
+

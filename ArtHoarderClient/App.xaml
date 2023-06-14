@@ -1,0 +1,13 @@
+﻿<Application x:Class="ArtHoarderClient.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:ArtHoarderClient"
+             StartupUri="/View/Windows/MainWindow.xaml">
+    <Application.Resources>
+        <Style x:Key="PanelHeader">
+            <Setter Property="Control.Background" Value="LightGray"/>
+            <Setter Property="Control.BorderBrush" Value="Black"/>
+            <Setter Property="Control.BorderThickness" Value="1.8"/>
+        </Style>
+    </Application.Resources>
+</Application>
