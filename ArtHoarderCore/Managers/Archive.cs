@@ -90,7 +90,7 @@ public sealed class Archive
         Directory.CreateDirectory(
             Path.GetDirectoryName(Path.Combine(workDirectory, Constants.ChangesAuditDbPath)) ?? workDirectory);
 
-        Directory.CreateDirectory(Path.Combine(workDirectory, Constants.UsersDirectory));
+        Directory.CreateDirectory(Path.Combine(workDirectory, Constants.DownloadedMediaDirectory));
         Directory.CreateDirectory(Path.Combine(workDirectory, Constants.PHashDbDir));
     }
 

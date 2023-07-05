@@ -109,7 +109,7 @@ public class FilesManager : IFilesManager
             return (fileMetaInfo, uri, responseMessage.Headers);
 
         var localPath = uri.AbsoluteUri.Split('/', StringSplitOptions.RemoveEmptyEntries)[^1];
-        localPath = Path.Combine(WorkDirectory, Constants.UsersDirectory, localDirectoryName, localPath);
+        localPath = Path.Combine(WorkDirectory, Constants.DownloadedMediaDirectory, localDirectoryName, localPath);
 
         stream.Position = 0;
         localPath = await SaveFileAsync(stream, localPath).ConfigureAwait(false);
