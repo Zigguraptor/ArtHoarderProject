@@ -1,9 +1,11 @@
 ﻿using System.Linq.Expressions;
+using System.Text.Json;
 using ArtHoarderCore.DAL;
 using ArtHoarderCore.DAL.Entities;
 using ArtHoarderCore.HashAlgs;
 using ArtHoarderCore.Infrastructure;
 using ArtHoarderCore.Parsers;
+using ArtHoarderCore.Serializable;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArtHoarderCore.Managers;
@@ -11,7 +13,7 @@ namespace ArtHoarderCore.Managers;
 public sealed class Archive
 {
     public readonly string WorkDirectory;
-    public string ArchiveName;
+    public readonly string ArchiveName;
     private readonly UniversalParser _universalParser;
     private readonly IFilesManager _filesManager;
     private readonly Logger _logger;
@@ -46,19 +48,52 @@ public sealed class Archive
 
     public List<IImageHasher> EnabledImageHashMakers => _filesManager.ImageHashMakers;
 
-    public Archive(string archiveFilePath, ProgressReporter reporter)
+    public Archive(ProgressReporter reporter, string archivePath, string archiveName)
     {
-        var workDirectory = Path.GetDirectoryName(archiveFilePath) ?? string.Empty;
-        ArchiveName = Path.GetFileNameWithoutExtension(archiveFilePath);
-        WorkDirectory = workDirectory;
-        reporter.SetProgressStage("Init Archive");
-        CreateSystemFolders(workDirectory);
-        _logger = new Logger(workDirectory, "Archive manager");
+        WorkDirectory = archivePath;
+        var mainFilePath = Path.Combine(archivePath, Constants.ArchiveMainFilePath);
+        if (File.Exists(mainFilePath))
+        {
+            ArchiveName = ReadArchiveFile(mainFilePath);
+        }
+        else
+        {
+            ArchiveName = archiveName;
+            InitArchiveMainFile(mainFilePath);
+        }
 
-        InitMainDb(workDirectory);
+        CreateSystemFolders(WorkDirectory);
+        _logger = new Logger(archivePath, "Archive manager");
+        InitMainDb(WorkDirectory);
 
-        var parsersLogger = new Logger(workDirectory, "Parsers");
-        _filesManager = new FilesManager(workDirectory, archiveFilePath, _logger)
+        var parsersLogger = new Logger(WorkDirectory, "Parsers");
+        _filesManager = new FilesManager(WorkDirectory, mainFilePath, _logger)
+        {
+            ImageHashMakers = new List<IImageHasher> { new DctHash() } //Add standard hash algorithms. 
+        };
+        _universalParser = new UniversalParser(new ParsHandler(_filesManager, parsersLogger));
+    }
+
+    public Archive(ProgressReporter reporter, string archivePath)
+    {
+        WorkDirectory = archivePath;
+        var mainFilePath = Path.Combine(archivePath, Constants.ArchiveMainFilePath);
+        if (!File.Exists(mainFilePath))
+        {
+            ArchiveName = "Archive";
+            InitArchiveMainFile(mainFilePath);
+        }
+        else
+        {
+            ArchiveName = ReadArchiveFile(mainFilePath);
+        }
+
+        CreateSystemFolders(archivePath);
+        _logger = new Logger(archivePath, "Archive manager");
+        InitMainDb(archivePath);
+
+        var parsersLogger = new Logger(archivePath, "Parsers");
+        _filesManager = new FilesManager(archivePath, mainFilePath, _logger)
         {
             ImageHashMakers = new List<IImageHasher> { new DctHash() } //Add standard hash algorithms. 
         };
@@ -66,6 +101,29 @@ public sealed class Archive
     }
 
     #region Init
+
+    private static string ReadArchiveFile(string path)
+    {
+        if (!File.Exists(path)) throw new Exception("Archive main file not found");
+
+        using var stream = File.Open(path, FileMode.Open);
+        var qwe = JsonSerializer.Deserialize<ArchiveMainFile>(stream);
+        if (qwe == null)
+            throw new Exception("Archive main file cannot be read");
+
+        return qwe.ArchiveName;
+    }
+
+    private void InitArchiveMainFile(string path)
+    {
+        CreateSystemFolders(WorkDirectory);
+        var mainFile = new ArchiveMainFile
+        {
+            ArchiveName = ArchiveName
+        };
+        using var stream = File.Create(path);
+        JsonSerializer.Serialize(stream, mainFile);
+    }
 
     private void InitMainDb(string workDirectory)
     {
@@ -95,7 +153,7 @@ public sealed class Archive
     }
 
     #endregion
-    
+
     public bool TryAddNewUser(string name)
     {
         using var context = new MainDbContext(WorkDirectory);
@@ -173,7 +231,7 @@ public sealed class Archive
         var galleryProfile = context.GalleryProfiles.Find(submission.SourceGalleryUri);
         return new FullSubmissionInfo(galleryProfile!.OwnerName, galleryProfile.UserName, submission, fileMetaInfos);
     }
-    
+
     public Task UpdateAllGalleriesAsync()
     {
         throw new NotImplementedException();

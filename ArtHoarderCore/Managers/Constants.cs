@@ -25,6 +25,7 @@ internal static class Constants
                throw new Exception("Missing constants resource file");
     }
 
+    public static string ArchiveMainFilePath => Path.Combine(MetaFilesDirectory, _constants.ArchiveMainFileName);
     public static string MetaFilesDirectory => _constants.MetaFilesDirectory;
     public static string DownloadedMediaDirectory => _constants.DownloadedMediaDirectory;
     public static string DefaultOtherDirectory => _constants.DefaultOtherDirectory;

@@ -1,4 +1,5 @@
 {
+  "ArchiveMainFileName": "Archive.info",
   "MetaFilesDirectory": ".ArtGCS",
   "MainDBName": "ArtGCS.db",
   "PHashDbsDirectory": "Perceptual hashes",
