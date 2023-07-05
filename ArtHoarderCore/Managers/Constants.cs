@@ -26,7 +26,6 @@ internal static class Constants
     }
 
     public static string MetaFilesDirectory => _constants.MetaFilesDirectory;
-    public static string FilesWithoutSourceDirectory => _constants.FilesWithoutSource;
     public static string UsersDirectory => _constants.UsersDirectoryName;
     public static string DefaultOtherFolderName => _constants.DefaultOtherFolderName;
     public static string LogsDirectory => Path.Combine(MetaFilesDirectory, _constants.LogDirectoryName);

@@ -92,7 +92,6 @@ public sealed class Archive
 
         Directory.CreateDirectory(Path.Combine(workDirectory, Constants.UsersDirectory));
         Directory.CreateDirectory(Path.Combine(workDirectory, Constants.PHashDbDir));
-        Directory.CreateDirectory(Path.Combine(workDirectory, Constants.FilesWithoutSourceDirectory));
     }
 
     #endregion
