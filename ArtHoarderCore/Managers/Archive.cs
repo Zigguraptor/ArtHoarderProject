@@ -96,20 +96,7 @@ public sealed class Archive
     }
 
     #endregion
-
-    public async Task ValidateLocalFiles(ProgressReporter reporter)
-    {
-        reporter.Report("Validate files...");
-        reporter.SetProgressStage("Load file infos from DB");
-
-        await using var context = new MainDbContext(WorkDirectory);
-        var pathHashes = await context.FilesMetaInfos.ToDictionaryAsync(metaInfo => metaInfo.LocalFilePath,
-            metaInfo => metaInfo.XxHash).ConfigureAwait(false);
-        reporter.SetProgressBar(0, pathHashes.Count);
-
-        await _filesManager.ValidateFilesAsync(pathHashes, reporter);
-    }
-
+    
     public bool TryAddNewUser(string name)
     {
         using var context = new MainDbContext(WorkDirectory);
@@ -187,14 +174,7 @@ public sealed class Archive
         var galleryProfile = context.GalleryProfiles.Find(submission.SourceGalleryUri);
         return new FullSubmissionInfo(galleryProfile!.OwnerName, galleryProfile.UserName, submission, fileMetaInfos);
     }
-
-    // public List<FullSubmissionInfo> GetFullSubmissionInfos(Expression<Func<Submission, bool>> where,
-    //     Expression<Func<Submission, object>> order)
-    // {
-    //     using var context = new MainDbContext(WorkDirectory);
-    //     throw new NotImplementedException();
-    // }
-
+    
     public Task UpdateAllGalleriesAsync()
     {
         throw new NotImplementedException();
@@ -244,10 +224,6 @@ public sealed class Archive
         using var context = new MainDbContext(WorkDirectory);
         throw new NotImplementedException();
     }
-
-    // public List<FullSubmissionInfo> GetFullSubmissionInfosSortedByHash(string hashName)
-    // {
-    // }
 
     public IEnumerable<FileMetaInfo> GetFilesInfo(Expression<Func<FileMetaInfo, bool>> where)
     {
