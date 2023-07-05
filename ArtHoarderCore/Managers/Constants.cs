@@ -27,11 +27,11 @@ internal static class Constants
 
     public static string MetaFilesDirectory => _constants.MetaFilesDirectory;
     public static string DownloadedMediaDirectory => _constants.DownloadedMediaDirectory;
-    public static string DefaultOtherFolderName => _constants.DefaultOtherFolderName;
-    public static string LogsDirectory => Path.Combine(MetaFilesDirectory, _constants.LogDirectoryName);
+    public static string DefaultOtherDirectory => _constants.DefaultOtherDirectory;
+    public static string LogsDirectory => Path.Combine(MetaFilesDirectory, _constants.LogDirectory);
     public static string ParsersConfigs => Path.Combine(ConstantsDirectory, _constants.ParsersConfigsDirectory);
     public static string MainDbPath => Path.Combine(MetaFilesDirectory, _constants.MainDBName);
     public static string ChangesAuditDbPath => Path.Combine(MetaFilesDirectory, _constants.ChangesAuditDbName);
-    public static string PHashDbDir => Path.Combine(MetaFilesDirectory, _constants.PHashDbsDir);
+    public static string PHashDbDirectory => Path.Combine(MetaFilesDirectory, _constants.PHashDbsDirectory);
     public static string Temp => Path.Combine(MetaFilesDirectory, "Temp");
 }

@@ -79,7 +79,7 @@ public class FilesManager : IFilesManager
     public async Task<List<(FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders)>> CheckOrSaveFilesAsync(
         string? localDirectoryName, List<Uri> uris)
     {
-        localDirectoryName ??= Constants.DefaultOtherFolderName;
+        localDirectoryName ??= Constants.DefaultOtherDirectory;
 
         var result = new List<(FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders)>();
         foreach (var uri in uris) // Parallel foreach?
@@ -92,7 +92,7 @@ public class FilesManager : IFilesManager
         string? localDirectoryName,
         Uri uri)
     {
-        localDirectoryName ??= Constants.DefaultOtherFolderName;
+        localDirectoryName ??= Constants.DefaultOtherDirectory;
 
         var xxHash64 = new XxHash64();
 

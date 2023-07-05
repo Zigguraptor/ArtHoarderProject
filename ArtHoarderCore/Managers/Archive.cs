@@ -91,7 +91,7 @@ public sealed class Archive
             Path.GetDirectoryName(Path.Combine(workDirectory, Constants.ChangesAuditDbPath)) ?? workDirectory);
 
         Directory.CreateDirectory(Path.Combine(workDirectory, Constants.DownloadedMediaDirectory));
-        Directory.CreateDirectory(Path.Combine(workDirectory, Constants.PHashDbDir));
+        Directory.CreateDirectory(Path.Combine(workDirectory, Constants.PHashDbDirectory));
     }
 
     #endregion

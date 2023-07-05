@@ -12,7 +12,7 @@ public sealed class PHashDbContext : DbContext
 
     public PHashDbContext(string workDirectory, string hashName)
     {
-        DbPath = Path.Combine(workDirectory, Constants.PHashDbDir, hashName + ".db");
+        DbPath = Path.Combine(workDirectory, Constants.PHashDbDirectory, hashName + ".db");
         Database.EnsureCreated();
     }
 
