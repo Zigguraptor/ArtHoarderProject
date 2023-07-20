@@ -59,6 +59,32 @@ public class ArchiveContext : IDisposable
         return context.Users.ToList();
     }
 
+    public bool TryAddNewGallery(Uri uri, string ownerName)
+    {
+        if (TryAddGalleryProfile(uri, ownerName)) return true;
+        return !TryAddNewUser(ownerName) || TryAddGalleryProfile(uri, ownerName);
+    }
+
+    private bool TryAddGalleryProfile(Uri uri, string ownerName)
+    {
+        using var context = new MainDbContext(_workDirectory);
+        var time = Time.GetCurrentDateTime();
+
+        var owner = context.Users.Find(ownerName);
+        if (owner == null)
+            return false;
+
+        context.GalleryProfiles.Add(new GalleryProfile
+        {
+            Uri = uri,
+            Resource = uri.Host,
+            Owner = owner,
+            FirstSaveTime = time,
+            LastUpdateTime = time
+        });
+        return TrySaveChanges(context);
+    }
+
     #endregion
 
     #endregion
