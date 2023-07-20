@@ -1,4 +1,6 @@
 ﻿using System.Text.Json;
+using ArtHoarderCore.DAL;
+using ArtHoarderCore.DAL.Entities;
 using ArtHoarderCore.Infrastructure.Enums;
 using ArtHoarderCore.Managers;
 using ArtHoarderCore.Serializable;
@@ -34,6 +36,24 @@ public class ArchiveContext : IDisposable
             return FilesValidator.GetFileStateSet(_workDirectory);
         }
     }
+
+    #region MainDbManipulations
+
+    public bool TryAddNewUser(string name)
+    {
+        using var context = new MainDbContext(_workDirectory);
+        var time = Time.GetCurrentDateTime();
+        context.Users.Add(new User
+        {
+            Name = name,
+            FirstSaveTime = time,
+            LastUpdateTime = time
+        });
+
+        return TrySaveChanges(context);
+    }
+
+    #endregion
 
     #endregion
 
