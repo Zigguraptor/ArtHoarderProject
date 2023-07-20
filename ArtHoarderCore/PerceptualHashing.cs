@@ -44,7 +44,28 @@ internal static class PerceptualHashing
 
     private static void RegManagedLib(string libPath)
     {
-        throw new NotImplementedException();
+        try
+        {
+            var moduleDefinition = ModuleDefinition.ReadModule(libPath);
+            var type = moduleDefinition.Types.SingleOrDefault(t => t.Name == "PerceptualHash");
+            if (type != null && type.IsClass)
+            {
+                var field = type.Fields.SingleOrDefault(f => f.Name == "HashName");
+                if (field != null && field.IsPublic && field.IsStatic && field.IsLiteral &&
+                    field.FieldType.FullName == "System.String")
+                {
+                    var method = type.Methods.SingleOrDefault(m => m.Name == "ComputeHash");
+                    if (method != null)
+                    {
+                        //TODO
+                    }
+                }
+            }
+        }
+        catch (BadImageFormatException e)
+        {
+            Console.WriteLine(e);
+        }
     }
 
     private static void RegUnmanagedLib(string libPath)
