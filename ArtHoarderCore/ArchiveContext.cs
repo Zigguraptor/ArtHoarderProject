@@ -2,6 +2,7 @@
 using ArtHoarderCore.Infrastructure.Enums;
 using ArtHoarderCore.Managers;
 using ArtHoarderCore.Serializable;
+using Microsoft.EntityFrameworkCore;
 
 namespace ArtHoarderCore;
 
@@ -36,6 +37,21 @@ public class ArchiveContext : IDisposable
 
     #endregion
 
+
+    private static bool TrySaveChanges(DbContext dbContext)
+    {
+        try
+        {
+            dbContext.SaveChanges();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return false;
+        }
+
+        return true;
+    }
 
     private ArchiveMainFile ReadArchiveFile()
     {
