@@ -5,12 +5,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ArtHoarderCore.Parsers;
 
-internal class ParsHandler : IParsHandler
+internal class ParsingHandler : IParsHandler
 {
     private IFilesManager _filesManager;
     public Logger Logger { get; }
 
-    public ParsHandler(IFilesManager filesManager, Logger logger)
+    public ParsingHandler(IFilesManager filesManager, Logger logger)
     {
         _filesManager = filesManager;
         Logger = logger;
