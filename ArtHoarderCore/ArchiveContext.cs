@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Linq.Expressions;
+using System.Text.Json;
 using ArtHoarderCore.DAL;
 using ArtHoarderCore.DAL.Entities;
 using ArtHoarderCore.Infrastructure.Enums;
@@ -69,6 +70,24 @@ public class ArchiveContext : IDisposable
     {
         using var context = new MainDbContext(_workDirectory);
         return context.GalleryProfiles.ToList();
+    }
+
+    public List<Submission> GetSubmissions()
+    {
+        using var context = new MainDbContext(_workDirectory);
+        return context.Submissions
+            .Include(s => s.FileMetaInfos)
+            .Include(s => s.SourceGallery)
+            .ToList();
+    }
+
+    public List<Submission> GetSubmissions(Expression<Func<Submission, bool>> where)
+    {
+        using var context = new MainDbContext(_workDirectory);
+        return context.Submissions.Where(where)
+            .Include(s => s.FileMetaInfos)
+            .Include(s => s.SourceGallery)
+            .ToList();
     }
 
     #endregion
