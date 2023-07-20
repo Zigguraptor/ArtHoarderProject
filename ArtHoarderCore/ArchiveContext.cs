@@ -4,6 +4,8 @@ using ArtHoarderCore.DAL;
 using ArtHoarderCore.DAL.Entities;
 using ArtHoarderCore.Infrastructure.Enums;
 using ArtHoarderCore.Managers;
+using ArtHoarderCore.Networking;
+using ArtHoarderCore.Parsers;
 using ArtHoarderCore.Serializable;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +17,8 @@ public class ArchiveContext : IDisposable
     private readonly object _filesAccessSyncObj = new();
     public readonly string WorkDirectory;
     private ArchiveMainFile _cachedArchiveMainFile;
+    private readonly UniversalParser _universalParser;
+    private readonly PerceptualHashing _perceptualHashing;
 
     private string MainFilePath => Path.Combine(WorkDirectory, Constants.ArchiveMainFilePath);
 
@@ -23,6 +27,8 @@ public class ArchiveContext : IDisposable
         WorkDirectory = workDirectory;
         _mainFile = File.Open(MainFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
         _cachedArchiveMainFile = ReadArchiveFile();
+        _universalParser = new UniversalParser(new ParsingHandler(this, new Logger(WorkDirectory, "ParsingHandler")));
+        _perceptualHashing = new PerceptualHashing(WorkDirectory);
     }
 
     #region publicMethods
