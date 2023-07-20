@@ -1,24 +1,23 @@
 ﻿using ArtHoarderCore.DAL;
 using ArtHoarderCore.DAL.Entities;
-using ArtHoarderCore.Managers;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArtHoarderCore.Parsers;
 
 internal class ParsingHandler : IParsHandler
 {
-    private IFilesManager _filesManager;
+    private readonly ArchiveContext _archiveContext;
     public Logger Logger { get; }
 
-    public ParsingHandler(IFilesManager filesManager, Logger logger)
+    public ParsingHandler(ArchiveContext archiveContext, Logger logger)
     {
-        _filesManager = filesManager;
+        _archiveContext = archiveContext;
         Logger = logger;
     }
 
     public virtual async Task<bool> RegisterGalleryProfileAsync(GalleryProfile galleryProfile, string? saveFolder)
     {
-        await using var context = new MainDbContext(_filesManager.WorkDirectory);
+        await using var context = new MainDbContext(_archiveContext.WorkDirectory);
         var localGalleryProfile = await context.GalleryProfiles.FindAsync(galleryProfile.Uri);
         if (localGalleryProfile == null)
         {
@@ -28,7 +27,7 @@ internal class ParsingHandler : IParsHandler
 
         if (galleryProfile.IconFileUri != null)
         {
-            var tuple = await _filesManager
+            var tuple = await _archiveContext
                 .CheckOrSaveFileAsync(saveFolder, galleryProfile.IconFileUri).ConfigureAwait(false);
             galleryProfile.IconFileGuid = tuple.fileMetaInfo.Guid;
 
@@ -45,7 +44,7 @@ internal class ParsingHandler : IParsHandler
         if (parsedSubmission == null)
             return;
 
-        await using var context = new MainDbContext(_filesManager.WorkDirectory);
+        await using var context = new MainDbContext(_archiveContext.WorkDirectory);
         var localSubmission = await context.Submissions.FindAsync(parsedSubmission.Uri);
         if (localSubmission == null)
         {
@@ -58,13 +57,13 @@ internal class ParsingHandler : IParsHandler
         {
             if (parsedSubmission.SubmissionFileUris.Count == 1)
             {
-                var tuple = await _filesManager.CheckOrSaveFileAsync(saveFolder,
+                var tuple = await _archiveContext.CheckOrSaveFileAsync(saveFolder,
                     parsedSubmission.SubmissionFileUris[0]);
                 AddOrUpdateSubmissionFileLink(parsedSubmission.Uri,
                     tuple.fileMetaInfo.Guid, parsedSubmission.SubmissionFileUris[0]);
             }
 
-            var response = await _filesManager.CheckOrSaveFilesAsync(saveFolder, parsedSubmission.SubmissionFileUris);
+            var response = await _archiveContext.CheckOrSaveFilesAsync(saveFolder, parsedSubmission.SubmissionFileUris);
             foreach (var valueTuple in response)
                 AddOrUpdateSubmissionFileLink(parsedSubmission.Uri, valueTuple.fileMetaInfo.Guid, valueTuple.fileUri);
         }
