@@ -53,6 +53,12 @@ public class ArchiveContext : IDisposable
         return TrySaveChanges(context);
     }
 
+    public List<User> GetUsers()
+    {
+        using var context = new MainDbContext(_workDirectory);
+        return context.Users.ToList();
+    }
+
     #endregion
 
     #endregion
