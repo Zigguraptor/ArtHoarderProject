@@ -7,8 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ArtHoarderCore;
 
-public class ArchiveContext
+public class ArchiveContext : IDisposable
 {
+    private FileStream _mainFile;
     private readonly object _filesAccessSyncObj = new();
     private readonly string _workDirectory;
     public string ArchiveName { get; private set; } = null!;
@@ -139,4 +140,18 @@ public class ArchiveContext
     }
 
     #endregion
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _mainFile.Dispose();
+        }
+    }
 }
