@@ -2,5 +2,6 @@
 
 internal class ArchiveMainFile
 {
-    public string ArchiveName { get; init; }
+    public string ArchiveRootName { get; init; } = null!;
+    public DateTime LastAccess { get; set; }
 }
