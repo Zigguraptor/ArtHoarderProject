@@ -60,7 +60,7 @@ public class ArchiveContext : IDisposable
             LastUpdateTime = time
         });
 
-        return TrySaveChanges(context);
+        return TrySaveDbChanges(context);
     }
 
     public bool TryAddNewGallery(Uri uri, string ownerName)
@@ -157,7 +157,7 @@ public class ArchiveContext : IDisposable
             FirstSaveTime = Time.GetCurrentDateTime()
         };
         dbContext.FilesMetaInfos.Add(fileMetaInfo);
-        TrySaveChanges(dbContext);
+        TrySaveDbChanges(dbContext);
 
         stream.Position = 0;
         _perceptualHashing.CalculateHashes(guid, stream);
@@ -214,10 +214,10 @@ public class ArchiveContext : IDisposable
             FirstSaveTime = time,
             LastUpdateTime = time
         });
-        return TrySaveChanges(context);
+        return TrySaveDbChanges(context);
     }
 
-    private static bool TrySaveChanges(DbContext dbContext)
+    private static bool TrySaveDbChanges(DbContext dbContext)
     {
         try
         {
