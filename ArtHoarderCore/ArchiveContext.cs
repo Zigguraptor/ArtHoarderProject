@@ -21,8 +21,21 @@ public class ArchiveContext : IDisposable
         _cachedArchiveMainFile = ReadArchiveFile();
     }
 
+    #region publicMethods
+
     public static CreationCode CreateArchive(string workDirectory) =>
         ArchiveInitialization.CreateArchive(workDirectory);
+
+    public FileStateSet GetFileStateSet()
+    {
+        lock (_filesAccessSyncObj)
+        {
+            return FilesValidator.GetFileStateSet(_workDirectory);
+        }
+    }
+
+    #endregion
+
 
     private ArchiveMainFile ReadArchiveFile()
     {
