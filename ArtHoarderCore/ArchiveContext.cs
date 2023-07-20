@@ -1,145 +1,35 @@
-﻿using System.IO.Hashing;
-using System.Text.Json;
-using ArtHoarderCore.DAL;
+﻿using System.Text.Json;
 using ArtHoarderCore.Managers;
 using ArtHoarderCore.Serializable;
-using Microsoft.EntityFrameworkCore;
 
 namespace ArtHoarderCore;
 
 public class ArchiveContext : IDisposable
 {
-    private FileStream _mainFile;
+    private readonly FileStream _mainFile;
     private readonly object _filesAccessSyncObj = new();
     private readonly string _workDirectory;
-    public string ArchiveName { get; private set; } = null!;
-    private string MainFilePath => Path.Combine(_workDirectory, Constants.ArchiveMainFilePath);
-    private NewFileManager _filesManager;
+    private ArchiveMainFile _cachedArchiveMainFile;
 
-    public ArchiveContext(string workDirectory, string? archiveName = null)
+    private string MainFilePath => Path.Combine(_workDirectory, Constants.ArchiveMainFilePath);
+
+    public ArchiveContext(string workDirectory)
     {
         _workDirectory = workDirectory;
-        _filesManager = new NewFileManager(workDirectory);
-        EnsureCreated(archiveName);
+        _mainFile = File.Open(MainFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        _cachedArchiveMainFile = ReadArchiveFile();
     }
 
-    #region Init
-
-    private void EnsureCreated(string? archiveName)
+    private ArchiveMainFile ReadArchiveFile()
     {
-        if (File.Exists(MainFilePath))
+        lock (_mainFile)
         {
-            ReadArchiveFile();
-        }
-        else
-        {
-            ArchiveName = archiveName ?? throw new AggregateException("Archive Name is missing (null)");
-            InitArchiveMainFile();
-        }
-
-        CreateSystemFolders(_workDirectory);
-        InitMainDb();
-    }
-
-    private void ReadArchiveFile()
-    {
-        if (!File.Exists(MainFilePath)) throw new Exception("Archive main file not found");
-
-        using var stream = File.Open(MainFilePath, FileMode.Open);
-        var archiveMainFile = JsonSerializer.Deserialize<ArchiveMainFile>(stream);
-        if (archiveMainFile == null)
-            throw new Exception("Archive main file cannot be read");
-        ArchiveName = archiveMainFile.ArchiveName;
-    }
-
-    private static void CreateSystemFolders(string workDirectory)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(workDirectory, Constants.MainDbPath)) ??
-                                  workDirectory);
-        Directory.CreateDirectory(
-            Path.GetDirectoryName(Path.Combine(workDirectory, Constants.ChangesAuditDbPath)) ?? workDirectory);
-
-        Directory.CreateDirectory(Path.Combine(workDirectory, Constants.DownloadedMediaDirectory));
-        Directory.CreateDirectory(Path.Combine(workDirectory, Constants.PHashDbDirectory));
-    }
-
-    private void InitArchiveMainFile()
-    {
-        CreateSystemFolders(_workDirectory);
-        var mainFile = new ArchiveMainFile
-        {
-            ArchiveName = ArchiveName
-        };
-        using var stream = File.Create(MainFilePath);
-        JsonSerializer.Serialize(stream, mainFile);
-    }
-
-    private void InitMainDb()
-    {
-        using var
-            context = new MainDbContext(
-                _workDirectory); //Там вложенный контекст для аудита. По тому директория, а не путь
-        try
-        {
-            context.Database.ExecuteSqlRaw
-            (@"CREATE VIEW `View_DisplayedGalleries` AS
-    SELECT GalleryProfiles.UserName, GalleryProfiles.OwnerName, GalleryProfiles.Uri
-     FROM `GalleryProfiles`;");
-        }
-        catch
-        {
-            // ignored
+            var archiveMainFile = JsonSerializer.Deserialize<ArchiveMainFile>(_mainFile);
+            if (archiveMainFile == null)
+                throw new Exception("Archive main file cannot be read");
+            return archiveMainFile;
         }
     }
-
-    #endregion
-
-    #region FilesManagment
-
-    public FileStateSet GetFileStateSet()
-    {
-        lock (_filesAccessSyncObj)
-        {
-            var filesHashes = GetFilesMetaDictionary();
-            var systemFolder = Path.Combine(_workDirectory, Constants.MetaFilesDirectory);
-            HashSet<string> unregisteredFiles =
-                new(Directory.EnumerateFiles(_workDirectory, "*", SearchOption.AllDirectories));
-            unregisteredFiles.Remove(MainFilePath);
-            unregisteredFiles.RemoveWhere(s => s.StartsWith(systemFolder));
-            HashSet<string> missingFiles = new();
-            HashSet<string> changedFiles = new();
-
-            var xxHash64 = new XxHash64();
-            foreach (var pair in filesHashes)
-            {
-                if (!unregisteredFiles.Remove(pair.Key))
-                {
-                    missingFiles.Add(pair.Key);
-                    continue;
-                }
-
-                using var stream = File.OpenRead(pair.Key);
-                stream.Position = 0;
-                xxHash64.Append(stream);
-
-                if (!xxHash64.GetHashAndReset().SequenceEqual(pair.Value))
-                {
-                    changedFiles.Add(pair.Key);
-                }
-            }
-
-            return new FileStateSet(unregisteredFiles, missingFiles, changedFiles);
-        }
-    }
-
-    private Dictionary<string, byte[]> GetFilesMetaDictionary()
-    {
-        using var dbContext = new MainDbContext(_workDirectory);
-        return dbContext.FilesMetaInfos.ToDictionary(metaInfo => metaInfo.LocalFilePath,
-            metaInfo => metaInfo.XxHash);
-    }
-
-    #endregion
 
     public void Dispose()
     {
@@ -151,7 +41,10 @@ public class ArchiveContext : IDisposable
     {
         if (disposing)
         {
-            _mainFile.Dispose();
+            lock (_mainFile)
+            {
+                _mainFile.Dispose();
+            }
         }
     }
 }
