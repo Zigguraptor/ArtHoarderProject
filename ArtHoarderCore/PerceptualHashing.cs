@@ -52,12 +52,36 @@ internal class PerceptualHashing
         }
     }
 
-    public void CalculateHashes(Guid guid, double[,] lowImage)
+    public void CalculateHashes(Guid guid, Stream stream)
+    {
+        var image = Image.Load<Rgb24>(stream);
+        var lowImage = CompressImage(image);
+        CalculateHashes(guid, lowImage);
+    }
+
+    private void CalculateHashes(Guid guid, double[,] lowImage)
     {
         foreach (var algorithm in _enabledAlgorithms)
         {
             SavePHash(algorithm.HashName, guid, algorithm.ComputeHash(lowImage));
         }
+    }
+
+    private double[,] CompressImage(Image<Rgb24> image)
+    {
+        image.Mutate(x => x.Resize(32, 32));
+
+        var grayImageMatrix = new double[32, 32];
+        for (var i = 0; i < 32; i++)
+        {
+            for (var j = 0; j < 32; j++)
+            {
+                var pixel = image[i, j];
+                grayImageMatrix[i, j] = ((double)pixel.R + pixel.G + pixel.B) / 3d;
+            }
+        }
+
+        return grayImageMatrix;
     }
 
     private void SavePHash(string hashName, Guid fileGuid, byte[] hash)
