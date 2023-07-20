@@ -33,6 +33,13 @@ internal class PerceptualHashing
         return algorithms;
     }
 
+    public void SetEnabledAllAlgorithms()
+    {
+        if (Algorithms.Length == _enabledAlgorithms.Count) return;
+        _enabledAlgorithms.Clear();
+        _enabledAlgorithms.AddRange(Algorithms);
+    }
+
     public void SetEnabledAlgorithms(List<string> algorithmsNames)
     {
         _enabledAlgorithms.Clear();
