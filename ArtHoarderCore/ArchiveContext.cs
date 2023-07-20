@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using ArtHoarderCore.Infrastructure.Enums;
 using ArtHoarderCore.Managers;
 using ArtHoarderCore.Serializable;
 
@@ -19,6 +20,9 @@ public class ArchiveContext : IDisposable
         _mainFile = File.Open(MainFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
         _cachedArchiveMainFile = ReadArchiveFile();
     }
+
+    public static CreationCode CreateArchive(string workDirectory) =>
+        ArchiveInitialization.CreateArchive(workDirectory);
 
     private ArchiveMainFile ReadArchiveFile()
     {
