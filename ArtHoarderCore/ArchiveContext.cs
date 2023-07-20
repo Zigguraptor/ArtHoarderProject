@@ -13,14 +13,14 @@ public class ArchiveContext : IDisposable
 {
     private readonly FileStream _mainFile;
     private readonly object _filesAccessSyncObj = new();
-    private readonly string _workDirectory;
+    public readonly string WorkDirectory;
     private ArchiveMainFile _cachedArchiveMainFile;
 
-    private string MainFilePath => Path.Combine(_workDirectory, Constants.ArchiveMainFilePath);
+    private string MainFilePath => Path.Combine(WorkDirectory, Constants.ArchiveMainFilePath);
 
     public ArchiveContext(string workDirectory)
     {
-        _workDirectory = workDirectory;
+        WorkDirectory = workDirectory;
         _mainFile = File.Open(MainFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
         _cachedArchiveMainFile = ReadArchiveFile();
     }
@@ -34,7 +34,7 @@ public class ArchiveContext : IDisposable
     {
         lock (_filesAccessSyncObj)
         {
-            return FilesValidator.GetFileStateSet(_workDirectory);
+            return FilesValidator.GetFileStateSet(WorkDirectory);
         }
     }
 
@@ -42,7 +42,7 @@ public class ArchiveContext : IDisposable
 
     public bool TryAddNewUser(string name)
     {
-        using var context = new MainDbContext(_workDirectory);
+        using var context = new MainDbContext(WorkDirectory);
         var time = Time.GetCurrentDateTime();
         context.Users.Add(new User
         {
@@ -62,19 +62,19 @@ public class ArchiveContext : IDisposable
 
     public List<User> GetUsers()
     {
-        using var context = new MainDbContext(_workDirectory);
+        using var context = new MainDbContext(WorkDirectory);
         return context.Users.ToList();
     }
 
     public List<GalleryProfile> GetGalleryProfiles()
     {
-        using var context = new MainDbContext(_workDirectory);
+        using var context = new MainDbContext(WorkDirectory);
         return context.GalleryProfiles.ToList();
     }
 
     public List<Submission> GetSubmissions()
     {
-        using var context = new MainDbContext(_workDirectory);
+        using var context = new MainDbContext(WorkDirectory);
         return context.Submissions
             .Include(s => s.FileMetaInfos)
             .Include(s => s.SourceGallery)
@@ -83,7 +83,7 @@ public class ArchiveContext : IDisposable
 
     public List<Submission> GetSubmissions(Expression<Func<Submission, bool>> where)
     {
-        using var context = new MainDbContext(_workDirectory);
+        using var context = new MainDbContext(WorkDirectory);
         return context.Submissions.Where(where)
             .Include(s => s.FileMetaInfos)
             .Include(s => s.SourceGallery)
@@ -96,7 +96,7 @@ public class ArchiveContext : IDisposable
 
     private bool TryAddGalleryProfile(Uri uri, string ownerName)
     {
-        using var context = new MainDbContext(_workDirectory);
+        using var context = new MainDbContext(WorkDirectory);
         var time = Time.GetCurrentDateTime();
 
         var owner = context.Users.Find(ownerName);
