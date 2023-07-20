@@ -9,14 +9,11 @@ namespace ArtHoarderCore;
 
 public class ArchiveContext
 {
+    private readonly object _filesAccessSyncObj = new();
     private readonly string _workDirectory;
     public string ArchiveName { get; private set; } = null!;
     private string MainFilePath => Path.Combine(_workDirectory, Constants.ArchiveMainFilePath);
     private NewFileManager _filesManager;
-    
-    private HashSet<string>? _unregisteredFiles;
-    private HashSet<string>? _missingFiles;
-    private HashSet<string>? _changedFiles;
 
     public ArchiveContext(string workDirectory, string? archiveName = null)
     {
@@ -98,37 +95,47 @@ public class ArchiveContext
 
     #region FilesManagment
 
-    public Task ValidateFiles()
+    public FileStateSet GetFileStateSet()
     {
-        var filesHashes =  
-        var systemFolder = Path.Combine(_workDirectory, Constants.MetaFilesDirectory);
-        _unregisteredFiles =
-            new HashSet<string>(Directory.EnumerateFiles(_workDirectory, "*", SearchOption.AllDirectories));
-        _unregisteredFiles.Remove(MainFilePath);
-        _unregisteredFiles.RemoveWhere(s => s.StartsWith(systemFolder));
-        _missingFiles = new HashSet<string>();
-        _changedFiles = new HashSet<string>();
-        
-        var xxHash64 = new XxHash64();
-        foreach (var pair in filesHashes)
+        lock (_filesAccessSyncObj)
         {
-            if (!_unregisteredFiles.Remove(pair.Key))
+            var filesHashes = GetFilesMetaDictionary();
+            var systemFolder = Path.Combine(_workDirectory, Constants.MetaFilesDirectory);
+            HashSet<string> unregisteredFiles =
+                new(Directory.EnumerateFiles(_workDirectory, "*", SearchOption.AllDirectories));
+            unregisteredFiles.Remove(MainFilePath);
+            unregisteredFiles.RemoveWhere(s => s.StartsWith(systemFolder));
+            HashSet<string> missingFiles = new();
+            HashSet<string> changedFiles = new();
+
+            var xxHash64 = new XxHash64();
+            foreach (var pair in filesHashes)
             {
-                _missingFiles.Add(pair.Key);
-                continue;
+                if (!unregisteredFiles.Remove(pair.Key))
+                {
+                    missingFiles.Add(pair.Key);
+                    continue;
+                }
+
+                using var stream = File.OpenRead(pair.Key);
+                stream.Position = 0;
+                xxHash64.Append(stream);
+
+                if (!xxHash64.GetHashAndReset().SequenceEqual(pair.Value))
+                {
+                    changedFiles.Add(pair.Key);
+                }
             }
 
-            using var stream = File.OpenRead(pair.Key);
-            stream.Position = 0;
-            xxHash64.Append(stream);
-
-            if (!xxHash64.GetHashAndReset().SequenceEqual(pair.Value))
-            {
-                _changedFiles.Add(pair.Key);
-            }
+            return new FileStateSet(unregisteredFiles, missingFiles, changedFiles);
         }
+    }
 
-        return Task.CompletedTask;
+    private Dictionary<string, byte[]> GetFilesMetaDictionary()
+    {
+        using var dbContext = new MainDbContext(_workDirectory);
+        return dbContext.FilesMetaInfos.ToDictionary(metaInfo => metaInfo.LocalFilePath,
+            metaInfo => metaInfo.XxHash);
     }
 
     #endregion
