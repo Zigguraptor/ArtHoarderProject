@@ -65,6 +65,16 @@ public class ArchiveContext : IDisposable
         return !TryAddNewUser(ownerName) || TryAddGalleryProfile(uri, ownerName);
     }
 
+    public List<GalleryProfile> GetGalleryProfiles()
+    {
+        using var context = new MainDbContext(_workDirectory);
+        return context.GalleryProfiles.ToList();
+    }
+
+    #endregion
+
+    #endregion
+
     private bool TryAddGalleryProfile(Uri uri, string ownerName)
     {
         using var context = new MainDbContext(_workDirectory);
@@ -84,17 +94,6 @@ public class ArchiveContext : IDisposable
         });
         return TrySaveChanges(context);
     }
-
-    public List<GalleryProfile> GetGalleryProfiles()
-    {
-        using var context = new MainDbContext(_workDirectory);
-        return context.GalleryProfiles.ToList();
-    }
-
-    #endregion
-
-    #endregion
-
 
     private static bool TrySaveChanges(DbContext dbContext)
     {
