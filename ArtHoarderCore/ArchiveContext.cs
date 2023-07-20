@@ -1,4 +1,6 @@
-﻿using System.Linq.Expressions;
+﻿using System.IO.Hashing;
+using System.Linq.Expressions;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using ArtHoarderCore.DAL;
 using ArtHoarderCore.DAL.Entities;
@@ -13,6 +15,7 @@ namespace ArtHoarderCore;
 
 public class ArchiveContext : IDisposable
 {
+    private const int FileNameLimit = 100;
     private readonly FileStream _mainFile;
     private readonly object _filesAccessSyncObj = new();
     public readonly string WorkDirectory;
@@ -66,6 +69,11 @@ public class ArchiveContext : IDisposable
         return !TryAddNewUser(ownerName) || TryAddGalleryProfile(uri, ownerName);
     }
 
+    public string? TryGetUserName(Uri uri)
+    {
+        return _universalParser.TryGetUserName(uri);
+    }
+
     public List<User> GetUsers()
     {
         using var context = new MainDbContext(WorkDirectory);
@@ -99,6 +107,95 @@ public class ArchiveContext : IDisposable
     #endregion
 
     #endregion
+
+    #region InternalFilesManipulations
+
+    internal async Task<List<(FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders)>> CheckOrSaveFilesAsync(
+        string? localDirectoryName, List<Uri> uris)
+    {
+        localDirectoryName ??= Constants.DefaultOtherDirectory;
+
+        var result = new List<(FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders)>();
+        foreach (var uri in uris) // Parallel foreach?
+            result.Add(await CheckOrSaveFileAsync(localDirectoryName, uri));
+
+        return result;
+    }
+
+    internal async Task<(FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders)> CheckOrSaveFileAsync(
+        string? localDirectoryName,
+        Uri uri)
+    {
+        localDirectoryName ??= Constants.DefaultOtherDirectory;
+
+        var xxHash64 = new XxHash64();
+
+        var responseMessage = await WebDownloader.GetAsync(uri);
+        await using var dbContext = new MainDbContext(WorkDirectory);
+        await using var stream = await responseMessage.Content.ReadAsStreamAsync();
+
+        stream.Position = 0;
+        await xxHash64.AppendAsync(stream).ConfigureAwait(false);
+
+        var fileMetaInfo =
+            dbContext.FilesMetaInfos.FirstOrDefault(fileInfo => fileInfo.XxHash == xxHash64.GetCurrentHash());
+        if (fileMetaInfo != null)
+            return (fileMetaInfo, uri, responseMessage.Headers);
+
+        var localPath = uri.AbsoluteUri.Split('/', StringSplitOptions.RemoveEmptyEntries)[^1];
+        localPath = Path.Combine(WorkDirectory, Constants.DownloadedMediaDirectory, localDirectoryName, localPath);
+
+        stream.Position = 0;
+        localPath = await SaveFileAsync(stream, localPath).ConfigureAwait(false);
+
+        var guid = Guid.NewGuid();
+        fileMetaInfo = new FileMetaInfo
+        {
+            Guid = guid,
+            LocalFilePath = localPath,
+            XxHash = xxHash64.GetCurrentHash(),
+            FirstSaveTime = Time.GetCurrentDateTime()
+        };
+        dbContext.FilesMetaInfos.Add(fileMetaInfo);
+        TrySaveChanges(dbContext);
+
+        stream.Position = 0;
+        _perceptualHashing.CalculateHashes(guid, stream);
+
+        return (fileMetaInfo, uri, responseMessage.Headers);
+    }
+
+    #endregion
+
+    #region PrivateFilesManipulations
+
+    private async Task<string> SaveFileAsync(Stream sourceStream, string path)
+    {
+        path = GetFreeFileName(path);
+        Directory.CreateDirectory(Path.GetDirectoryName(path) ?? string.Empty);
+
+        await using var localFileStream = File.Create(path);
+        await sourceStream.CopyToAsync(localFileStream).ConfigureAwait(false);
+        return path;
+    }
+
+    private string GetFreeFileName(string startPath)
+    {
+        var newPath = startPath;
+        for (var i = 1; File.Exists(newPath) && i < FileNameLimit; i++)
+        {
+            newPath = Path.Combine(Path.GetDirectoryName(startPath) ?? string.Empty,
+                Path.GetFileNameWithoutExtension(startPath) + $"({i:D})" + Path.GetExtension(startPath));
+        }
+
+        if (!File.Exists(newPath))
+            return newPath;
+
+        throw new Exception("File naming limit: " + startPath); //TODO handle this
+    }
+
+    #endregion
+
 
     private bool TryAddGalleryProfile(Uri uri, string ownerName)
     {
