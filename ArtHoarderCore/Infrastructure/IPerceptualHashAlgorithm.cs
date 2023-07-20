@@ -1,6 +1,6 @@
 ﻿namespace ArtHoarderCore.Infrastructure;
 
-public interface IImageHasher
+public interface IPerceptualHashAlgorithm
 {
     public string HashName { get; }
 
