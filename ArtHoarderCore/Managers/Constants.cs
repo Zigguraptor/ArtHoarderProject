@@ -34,5 +34,10 @@ internal static class Constants
     public static string MainDbPath => Path.Combine(MetaFilesDirectory, _constants.MainDBName);
     public static string ChangesAuditDbPath => Path.Combine(MetaFilesDirectory, _constants.ChangesAuditDbName);
     public static string PHashDbDirectory => Path.Combine(MetaFilesDirectory, _constants.PHashDbsDirectory);
+
+    public static string PerceptualHashingLibs => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), _constants.ApplicationName,
+        _constants.PerceptualHashingLibs);
+
     public static string Temp => Path.Combine(MetaFilesDirectory, "Temp");
 }

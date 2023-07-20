@@ -1,4 +1,6 @@
 {
+  "ApplicationName": "ArtHoarder",
+  "PerceptualHashingLibs": "PerceptualHashingLibs",
   "ArchiveMainFileName": "Archive.info",
   "MetaFilesDirectory": ".ArtGCS",
   "MainDBName": "ArtGCS.db",
