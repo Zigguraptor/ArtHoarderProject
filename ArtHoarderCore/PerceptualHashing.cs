@@ -22,6 +22,29 @@ internal class PerceptualHashing
         new FastDct()
     };
 
+    public string[] GetAvailableAlgorithms()
+    {
+        var algorithms = new string[Algorithms.Length];
+        for (var i = 0; i < Algorithms.Length; i++)
+        {
+            algorithms[i] = Algorithms[i].HashName;
+        }
+
+        return algorithms;
+    }
+
+    public void SetEnabledAlgorithms(List<string> algorithmsNames)
+    {
+        _enabledAlgorithms.Clear();
+        foreach (var hashAlgorithm in Algorithms)
+        {
+            if (algorithmsNames.Contains(hashAlgorithm.HashName))
+            {
+                _enabledAlgorithms.Add(hashAlgorithm);
+            }
+        }
+    }
+
     public void CalculateHashes(Guid guid, double[,] lowImage)
     {
         foreach (var algorithm in _enabledAlgorithms)
