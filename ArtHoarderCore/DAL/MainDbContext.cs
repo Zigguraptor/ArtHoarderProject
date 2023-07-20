@@ -37,6 +37,11 @@ internal sealed class MainDbContext : DbContext
         modelBuilder.Entity<SubmissionComment>().HasNoKey();
         modelBuilder.Entity<ProfileComment>().HasNoKey();
 
+        modelBuilder.Entity<Submission>()
+            .HasMany(s => s.FileMetaInfos)
+            .WithMany(f => f.Submissions)
+            .UsingEntity(b => b.ToTable("SubmissionsFileMetaInfos"));
+
         #region Views
 
         modelBuilder.Entity<ProfileInfo>()

@@ -6,10 +6,6 @@ namespace ArtHoarderCore.DAL.Entities;
 
 public class Submission
 {
-    public Submission()
-    {
-    }
-
     public Submission(ParsedSubmission parsedSubmission)
     {
         Uri = parsedSubmission.Uri;
@@ -20,9 +16,9 @@ public class Submission
         PublicationTime = parsedSubmission.PublicationTime;
     }
 
-    [Key] public Uri Uri { get; set; } = null!;
+    [Key] public Uri Uri { get; set; }
 
-    public Uri SourceGalleryUri { get; set; } = null!;
+    public Uri SourceGalleryUri { get; set; }
     [ForeignKey("SourceGalleryUri")] public GalleryProfile SourceGallery { get; set; } = null!;
     public string? Title { get; set; }
     public string? Description { get; set; }
@@ -31,6 +27,8 @@ public class Submission
     public DateTime? PublicationTime { get; set; }
     public DateTime FirstSaveTime { get; set; }
     public DateTime LastUpdateTime { get; set; }
+    
+    public ICollection<FileMetaInfo> FileMetaInfos { get; set; } = null!;
 
     public void Update(ParsedSubmission parsedSubmission)
     {

@@ -14,6 +14,8 @@ public class FileMetaInfo
     public byte[] XxHash { get; set; } = null!;
     public DateTime FirstSaveTime { get; set; }
 
+    public ICollection<Submission> Submissions { get; set; } = null!;
+
     [NotMapped] public string Title => Path.GetFileName(LocalFilePath);
     [NotMapped] [NotDisplay] public string IconPath => LocalFilePath;
 
