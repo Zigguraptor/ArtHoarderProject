@@ -85,6 +85,12 @@ public class ArchiveContext : IDisposable
         return TrySaveChanges(context);
     }
 
+    public List<GalleryProfile> GetGalleryProfiles()
+    {
+        using var context = new MainDbContext(_workDirectory);
+        return context.GalleryProfiles.ToList();
+    }
+
     #endregion
 
     #endregion
