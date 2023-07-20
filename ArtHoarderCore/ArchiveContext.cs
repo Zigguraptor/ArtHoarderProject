@@ -54,16 +54,16 @@ public class ArchiveContext : IDisposable
         return TrySaveChanges(context);
     }
 
-    public List<User> GetUsers()
-    {
-        using var context = new MainDbContext(_workDirectory);
-        return context.Users.ToList();
-    }
-
     public bool TryAddNewGallery(Uri uri, string ownerName)
     {
         if (TryAddGalleryProfile(uri, ownerName)) return true;
         return !TryAddNewUser(ownerName) || TryAddGalleryProfile(uri, ownerName);
+    }
+
+    public List<User> GetUsers()
+    {
+        using var context = new MainDbContext(_workDirectory);
+        return context.Users.ToList();
     }
 
     public List<GalleryProfile> GetGalleryProfiles()
