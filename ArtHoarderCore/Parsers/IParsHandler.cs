@@ -6,6 +6,6 @@ internal interface IParsHandler
 {
     Logger Logger { get; }
 
-    Task<bool> RegisterGalleryProfileAsync(GalleryProfile galleryProfile, string? saveFolder);
-    Task RegisterSubmissionAsync(ParsedSubmission? parsedSubmission, string? saveFolder);
+    bool RegisterGalleryProfile(GalleryProfile galleryProfile, string? saveFolder);
+    void RegisterSubmission(ParsedSubmission? parsedSubmission, string? saveFolder);
 }

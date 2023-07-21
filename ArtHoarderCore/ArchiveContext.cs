@@ -110,32 +110,31 @@ public class ArchiveContext : IDisposable
 
     #region InternalFilesManipulations
 
-    internal async Task<List<(FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders)>> CheckOrSaveFilesAsync(
+    internal List<(FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders)> CheckOrSaveFilesAsync(
         string? localDirectoryName, List<Uri> uris)
     {
         localDirectoryName ??= Constants.DefaultOtherDirectory;
 
         var result = new List<(FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders)>();
         foreach (var uri in uris) // Parallel foreach?
-            result.Add(await CheckOrSaveFileAsync(localDirectoryName, uri));
+            result.Add(CheckOrSaveFile(localDirectoryName, uri));
 
         return result;
     }
 
-    internal async Task<(FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders)> CheckOrSaveFileAsync(
-        string? localDirectoryName,
-        Uri uri)
+    internal (FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders) CheckOrSaveFile(
+        string? localDirectoryName, Uri uri)
     {
         localDirectoryName ??= Constants.DefaultOtherDirectory;
 
         var xxHash64 = new XxHash64();
 
-        var responseMessage = await WebDownloader.GetAsync(uri);
-        await using var dbContext = new MainDbContext(WorkDirectory);
-        await using var stream = await responseMessage.Content.ReadAsStreamAsync();
+        var responseMessage = WebDownloader.GetAsync(uri).Result;
+        using var dbContext = new MainDbContext(WorkDirectory);
+        using var stream = responseMessage.Content.ReadAsStream();
 
         stream.Position = 0;
-        await xxHash64.AppendAsync(stream).ConfigureAwait(false);
+        xxHash64.Append(stream);
 
         var fileMetaInfo =
             dbContext.FilesMetaInfos.FirstOrDefault(fileInfo => fileInfo.XxHash == xxHash64.GetCurrentHash());
@@ -146,7 +145,7 @@ public class ArchiveContext : IDisposable
         localPath = Path.Combine(WorkDirectory, Constants.DownloadedMediaDirectory, localDirectoryName, localPath);
 
         stream.Position = 0;
-        localPath = await SaveFileAsync(stream, localPath).ConfigureAwait(false);
+        localPath = SaveFile(stream, localPath);
 
         var guid = Guid.NewGuid();
         fileMetaInfo = new FileMetaInfo
@@ -169,17 +168,17 @@ public class ArchiveContext : IDisposable
 
     #region PrivateFilesManipulations
 
-    private async Task<string> SaveFileAsync(Stream sourceStream, string path)
+    private string SaveFile(Stream sourceStream, string path)
     {
         path = GetFreeFileName(path);
         Directory.CreateDirectory(Path.GetDirectoryName(path) ?? string.Empty);
 
-        await using var localFileStream = File.Create(path);
-        await sourceStream.CopyToAsync(localFileStream).ConfigureAwait(false);
+        using var localFileStream = File.Create(path);
+        sourceStream.CopyTo(localFileStream);
         return path;
     }
 
-    private string GetFreeFileName(string startPath)
+    private static string GetFreeFileName(string startPath)
     {
         var newPath = startPath;
         for (var i = 1; File.Exists(newPath) && i < FileNameLimit; i++)

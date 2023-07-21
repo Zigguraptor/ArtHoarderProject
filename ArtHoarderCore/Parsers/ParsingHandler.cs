@@ -15,10 +15,10 @@ internal class ParsingHandler : IParsHandler
         Logger = logger;
     }
 
-    public virtual async Task<bool> RegisterGalleryProfileAsync(GalleryProfile galleryProfile, string? saveFolder)
+    public virtual bool RegisterGalleryProfile(GalleryProfile galleryProfile, string? saveFolder)
     {
-        await using var context = new MainDbContext(_archiveContext.WorkDirectory);
-        var localGalleryProfile = await context.GalleryProfiles.FindAsync(galleryProfile.Uri);
+        using var context = new MainDbContext(_archiveContext.WorkDirectory);
+        var localGalleryProfile = context.GalleryProfiles.Find(galleryProfile.Uri);
         if (localGalleryProfile == null)
         {
             context.GalleryProfiles.Add(galleryProfile);
@@ -27,8 +27,7 @@ internal class ParsingHandler : IParsHandler
 
         if (galleryProfile.IconFileUri != null)
         {
-            var tuple = await _archiveContext
-                .CheckOrSaveFileAsync(saveFolder, galleryProfile.IconFileUri).ConfigureAwait(false);
+            var tuple = _archiveContext.CheckOrSaveFile(saveFolder, galleryProfile.IconFileUri);
             galleryProfile.IconFileGuid = tuple.fileMetaInfo.Guid;
 
             localGalleryProfile.Update(galleryProfile);
@@ -39,13 +38,13 @@ internal class ParsingHandler : IParsHandler
         return TrySaveChanges(context);
     }
 
-    public virtual async Task RegisterSubmissionAsync(ParsedSubmission? parsedSubmission, string? saveFolder)
+    public virtual void RegisterSubmission(ParsedSubmission? parsedSubmission, string? saveFolder)
     {
         if (parsedSubmission == null)
             return;
 
-        await using var context = new MainDbContext(_archiveContext.WorkDirectory);
-        var localSubmission = await context.Submissions.FindAsync(parsedSubmission.Uri);
+        using var context = new MainDbContext(_archiveContext.WorkDirectory);
+        var localSubmission = context.Submissions.Find(parsedSubmission.Uri);
         if (localSubmission == null)
         {
             context.Submissions.Add(new Submission(parsedSubmission));
@@ -57,13 +56,12 @@ internal class ParsingHandler : IParsHandler
         {
             if (parsedSubmission.SubmissionFileUris.Count == 1)
             {
-                var tuple = await _archiveContext.CheckOrSaveFileAsync(saveFolder,
+                var tuple = _archiveContext.CheckOrSaveFile(saveFolder, parsedSubmission.SubmissionFileUris[0]);
+                AddOrUpdateSubmissionFileLink(parsedSubmission.Uri, tuple.fileMetaInfo.Guid,
                     parsedSubmission.SubmissionFileUris[0]);
-                AddOrUpdateSubmissionFileLink(parsedSubmission.Uri,
-                    tuple.fileMetaInfo.Guid, parsedSubmission.SubmissionFileUris[0]);
             }
 
-            var response = await _archiveContext.CheckOrSaveFilesAsync(saveFolder, parsedSubmission.SubmissionFileUris);
+            var response = _archiveContext.CheckOrSaveFilesAsync(saveFolder, parsedSubmission.SubmissionFileUris);
             foreach (var valueTuple in response)
                 AddOrUpdateSubmissionFileLink(parsedSubmission.Uri, valueTuple.fileMetaInfo.Guid, valueTuple.fileUri);
         }

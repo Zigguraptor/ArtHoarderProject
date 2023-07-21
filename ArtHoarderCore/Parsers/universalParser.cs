@@ -1,6 +1,4 @@
-﻿using ArtHoarderCore.DAL;
-using ArtHoarderCore.Infrastructure;
-using ArtHoarderCore.Managers;
+﻿using ArtHoarderCore.Infrastructure;
 
 namespace ArtHoarderCore.Parsers;
 
@@ -14,14 +12,26 @@ internal sealed class UniversalParser // LordParser
         _parsHandler = parsHandler;
     }
 
-    public Task UpdateGalleryAsync(Uri galleryUri, string ownerName, ProgressReporter reporter)
+    public Task<bool> UpdateGallery(Uri galleryUri, string directoryName, CancellationToken cancellationToken)
     {
-        return GetParser(galleryUri)?.ParsProfileGalleryAsync(galleryUri, ownerName, reporter) ?? Task.CompletedTask;
+        var parser = GetParser(galleryUri);
+        return parser?.ParsProfileGallery(galleryUri, directoryName, cancellationToken) ?? Task.FromResult(false);
     }
 
-    public Task<IEnumerable<Uri>>? GetSubscriptions(Uri uri, ProgressReporter reporter)
+    public Task<List<Uri>>? GetSubscriptions(Uri uri, CancellationToken cancellationToken)
     {
-        return GetParser(uri)?.TryGetSubscriptions(uri, reporter);
+        return GetParser(uri)?.TryGetSubscriptionsAsync(uri, cancellationToken);
+    }
+
+    public string? TryGetUserName(Uri uri)
+    {
+        return GetParser(uri)?.TryGetUserName(uri);
+    }
+
+    public bool CheckLink(Uri uri)
+    {
+        var parser = GetParser(uri);
+        return parser != null && parser.CheckLink(uri);
     }
 
     private Parser? GetParser(Uri uri)
@@ -35,16 +45,5 @@ internal sealed class UniversalParser // LordParser
 
         _parsers.Add(uri.Host, parser);
         return parser;
-    }
-    
-    public string? TryGetUserName(Uri uri)
-    {
-        return GetParser(uri)?.TryGetUserName(uri);
-    }
-
-    public bool CheckLink(Uri uri)
-    {
-        var parser = GetParser(uri);
-        return parser != null && parser.CheckLink(uri);
     }
 }

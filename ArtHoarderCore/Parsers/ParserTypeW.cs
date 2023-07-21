@@ -1,6 +1,5 @@
 ﻿using System.Globalization;
 using ArtHoarderCore.DAL.Entities;
-using ArtHoarderCore.Infrastructure;
 using ArtHoarderCore.Networking;
 using ArtHoarderCore.Parsers.Settings;
 using HtmlAgilityPack;
@@ -195,7 +194,7 @@ internal class ParserTypeW : Parser
             {
                 try
                 {
-                    var htmlDocument = WebDownloader.GetHtmlAsync(new Uri("https:" + nextButton)).Result;
+                    var htmlDocument = WebDownloader.GetHtml(new Uri("https:" + nextButton));
                     if (htmlDocument == null) break;
                     document = htmlDocument;
                 }
@@ -263,11 +262,11 @@ internal class ParserTypeW : Parser
         return uris;
     }
 
-    public override async Task<IEnumerable<Uri>> TryGetSubscriptions(Uri uri, ProgressReporter reporter)
+    public override async Task<List<Uri>> TryGetSubscriptionsAsync(Uri uri, CancellationToken cancellationToken)
     {
-        reporter.SetProgressStage("Load subscriptions pages");
-        reporter.Report($"Download \"{uri}\"");
-        var document = await WebDownloader.GetHtmlAsync(uri);
+        // reporter.SetProgressStage("Load subscriptions pages");
+        // reporter.Report($"Download \"{uri}\"");
+        var document = await WebDownloader.GetHtmlAsync(uri, cancellationToken);
 
         var currentSubscriptionsPageUri = document?.DocumentNode
             .SelectSingleNode(ParserTypeWSettings.XpathSubscriptions)
@@ -275,14 +274,15 @@ internal class ParserTypeW : Parser
             .Value;
         var pages = new Stack<HtmlDocument>();
 
-        if (currentSubscriptionsPageUri == null) return GetSubscriptionsLinks(pages, reporter);
+        if (currentSubscriptionsPageUri == null) return GetSubscriptionsLinks(pages);
 
         currentSubscriptionsPageUri = "https://" + Host + currentSubscriptionsPageUri;
-        reporter.Report($"Download \"{currentSubscriptionsPageUri}\"");
+        // reporter.Report($"Download \"{currentSubscriptionsPageUri}\"");
         var subscriptionsPage =
-            await WebDownloader.GetHtmlAsync(new Uri(currentSubscriptionsPageUri)).ConfigureAwait(false);
+            await WebDownloader.GetHtmlAsync(new Uri(currentSubscriptionsPageUri), cancellationToken)
+                .ConfigureAwait(false);
 
-        if (subscriptionsPage == null) return GetSubscriptionsLinks(pages, reporter);
+        if (subscriptionsPage == null) return GetSubscriptionsLinks(pages);
 
         pages.Push(subscriptionsPage);
         while (true)
@@ -297,9 +297,9 @@ internal class ParserTypeW : Parser
             }
             catch
             {
-                reporter.Error(
-                    "Failed to get \"next\" button. Update parser settings.\nXpathSubscriptionsNextPage\nXpathSubscriptionsNextPageAttribute");
-                return GetSubscriptionsLinks(pages, reporter);
+                // reporter.Error(
+                //     "Failed to get \"next\" button. Update parser settings.\nXpathSubscriptionsNextPage\nXpathSubscriptionsNextPageAttribute");
+                return GetSubscriptionsLinks(pages);
             }
 
 
@@ -312,26 +312,26 @@ internal class ParserTypeW : Parser
 
             if (!Uri.TryCreate(currentSubscriptionsPageUri, UriKind.Absolute, out var nextUri))
             {
-                reporter.Error($"Parsing error. \"{currentSubscriptionsPageUri}\" not url");
-                return GetSubscriptionsLinks(pages, reporter);
+                // reporter.Error($"Parsing error. \"{currentSubscriptionsPageUri}\" not url");
+                return GetSubscriptionsLinks(pages);
             }
 
-            reporter.Report($"Download \"{currentSubscriptionsPageUri}\"");
-            var page = await WebDownloader.GetHtmlAsync(nextUri).ConfigureAwait(false);
+            // reporter.Report($"Download \"{currentSubscriptionsPageUri}\"");
+            var page = await WebDownloader.GetHtmlAsync(nextUri, cancellationToken).ConfigureAwait(false);
             if (page == null) break;
 
             pages.Push(page);
         }
 
-        return GetSubscriptionsLinks(pages, reporter);
+        return GetSubscriptionsLinks(pages);
     }
 
-    private IEnumerable<Uri> GetSubscriptionsLinks(IEnumerable<HtmlDocument> documents, ProgressReporter reporter)
+    private List<Uri> GetSubscriptionsLinks(IEnumerable<HtmlDocument> documents)
     {
         var htmlDocuments = documents as HtmlDocument[] ?? documents.ToArray();
 
-        reporter.SetProgressStage("Pars pages");
-        reporter.SetProgressBar(0, htmlDocuments.Length);
+        // reporter.SetProgressStage("Pars pages");
+        // reporter.SetProgressBar(0, htmlDocuments.Length);
 
         var uris = new List<Uri>();
         foreach (var document in htmlDocuments)
@@ -339,7 +339,7 @@ internal class ParserTypeW : Parser
             uris.AddRange(document.DocumentNode.SelectNodes(ParserTypeWSettings.XpathSubscriptionsLinks)
                 .Select(d => new Uri("https://" + Host + d.Attributes.First().Value)));
 
-            reporter.Progress();
+            // reporter.Progress();
         }
 
         return uris;
@@ -374,7 +374,7 @@ internal class ParserTypeW : Parser
         var uri = GetGalleryUri(profileDocument);
         if (uri == null) return pages;
 
-        var doc = WebDownloader.GetHtmlAsync(uri).Result;
+        var doc = WebDownloader.GetHtml(uri);
         if (doc == null) return pages;
 
         pages.Add(doc);
@@ -409,7 +409,7 @@ internal class ParserTypeW : Parser
         var next = page.DocumentNode.SelectSingleNode(ParserTypeWSettings.XpathNextPageButton);
         if (next != null && next.InnerText.Contains("Next"))
         {
-            nextPage = WebDownloader.GetHtmlAsync(new Uri("https://" + Host + next.Attributes.First().Value)).Result;
+            nextPage = WebDownloader.GetHtml(new Uri("https://" + Host + next.Attributes.First().Value));
             return true;
         }
 

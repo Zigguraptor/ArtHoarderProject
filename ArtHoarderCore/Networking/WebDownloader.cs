@@ -25,16 +25,16 @@ public static class WebDownloader
         Client.DefaultRequestHeaders.Add("user-agent",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36");
     }
-    
-    public static async Task<HtmlDocument?> GetHtmlAsync(Uri uri)
+
+    public static async Task<HtmlDocument?> GetHtmlAsync(Uri uri, CancellationToken cancellationToken)
     {
-        var response = await Client.GetAsync(uri).ConfigureAwait(false);
+        var response = await Client.GetAsync(uri, cancellationToken).ConfigureAwait(false);
         if (response.StatusCode != HttpStatusCode.OK)
         {
             throw new HttpRequestException("StatusCode: " + response.StatusCode + ". uri: " + uri); //TODO
         }
 
-        var html = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var html = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         var doc = new HtmlDocument();
         doc.LoadHtml(html);
         return doc;
