@@ -52,6 +52,8 @@ public class ArchiveContext : IDisposable
         return _universalParser.GetSubscriptions(uri, cancellationToken);
     }
 
+    #region Update
+
     public async Task<bool> UpdateUserAsync(string userName, CancellationToken cancellationToken)
     {
         using var context = new MainDbContext(WorkDirectory);
@@ -76,6 +78,8 @@ public class ArchiveContext : IDisposable
         directoryName ??= galleryProfile.OwnerName;
         return await _universalParser.UpdateGallery(galleryUri, directoryName, cancellationToken).ConfigureAwait(false);
     }
+
+    #endregion
 
     #region MainDbManipulations
 
