@@ -1,32 +1,33 @@
 ﻿namespace ArtHoarderCore.Parsers;
 
-internal sealed class UniversalParser // LordParser
+public sealed class UniversalParser // LordParser
 {
+    public static bool IsSupportedLink(Uri uri) => ParserFactory.IsSupportedLink(uri);
     private readonly IParsHandler _parsHandler;
     private readonly Dictionary<string, Parser> _parsers = new();
 
-    public UniversalParser(IParsHandler parsHandler)
+    internal UniversalParser(IParsHandler parsHandler)
     {
         _parsHandler = parsHandler;
     }
 
-    public Task<bool> UpdateGallery(Uri galleryUri, string directoryName, CancellationToken cancellationToken)
+    internal Task<bool> UpdateGallery(Uri galleryUri, string directoryName, CancellationToken cancellationToken)
     {
         var parser = GetParser(galleryUri);
         return parser?.ParsProfileGallery(galleryUri, directoryName, cancellationToken) ?? Task.FromResult(false);
     }
 
-    public Task<List<Uri>>? GetSubscriptions(Uri uri, CancellationToken cancellationToken)
+    internal Task<List<Uri>>? GetSubscriptions(Uri uri, CancellationToken cancellationToken)
     {
         return GetParser(uri)?.TryGetSubscriptionsAsync(uri, cancellationToken);
     }
 
-    public string? TryGetUserName(Uri uri)
+    internal string? TryGetUserName(Uri uri)
     {
         return GetParser(uri)?.TryGetUserName(uri);
     }
 
-    public bool CheckLink(Uri uri)
+    internal bool CheckLink(Uri uri)
     {
         var parser = GetParser(uri);
         return parser != null && parser.CheckLink(uri);
