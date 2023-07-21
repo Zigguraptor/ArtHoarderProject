@@ -75,4 +75,9 @@ internal static class ParserFactory
                 $" or update the version of the program. SupportedTypes: {SupportedTypes.Aggregate("", (current, s) => current + s + ", ")}.")
         };
     }
+
+    public static bool IsSupportedLink(Uri uri)
+    {
+        return ParsersSettingsList.Any(s => s.Host == uri.Host);
+    }
 }
