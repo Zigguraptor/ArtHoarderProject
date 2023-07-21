@@ -47,6 +47,19 @@ public class ArchiveContext : IDisposable
         }
     }
 
+
+    public async Task<bool> UpdateGallery(Uri galleryUri, CancellationToken cancellationToken,
+        string? directoryName = null)
+    {
+        using var context = new MainDbContext(WorkDirectory);
+        var galleryProfile = context.GalleryProfiles.FirstOrDefault(g => g.Uri == galleryUri);
+        if (galleryProfile is null)
+            return false;
+
+        directoryName ??= galleryProfile.OwnerName;
+        return await _universalParser.UpdateGallery(galleryUri, directoryName, cancellationToken).ConfigureAwait(false);
+    }
+
     #region MainDbManipulations
 
     public bool TryAddNewUser(string name)
