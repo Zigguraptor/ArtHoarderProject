@@ -31,7 +31,7 @@ internal static class Constants
     public static string DefaultOtherDirectory => _constants.DefaultOtherDirectory;
     public static string LogsDirectory => Path.Combine(MetaFilesDirectory, _constants.LogDirectory);
     public static string ParsersConfigs => Path.Combine(ConstantsDirectory, _constants.ParsersConfigsDirectory);
-    public static string MainDbPath => Path.Combine(MetaFilesDirectory, _constants.MainDBName);
+    public static string MainDbPath => Path.Combine(MetaFilesDirectory, _constants.MainDbName);
     public static string ChangesAuditDbPath => Path.Combine(MetaFilesDirectory, _constants.ChangesAuditDbName);
     public static string PHashDbDirectory => Path.Combine(MetaFilesDirectory, _constants.PHashDbsDirectory);
 

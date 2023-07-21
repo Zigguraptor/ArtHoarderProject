@@ -3,7 +3,7 @@
   "PerceptualHashingLibs": "PerceptualHashingLibs",
   "ArchiveMainFileName": "Archive.info",
   "MetaFilesDirectory": ".ArtGCS",
-  "MainDBName": "ArtGCS.db",
+  "MainDbName": "ArtGCS.db",
   "PHashDbsDirectory": "Perceptual hashes",
   "DownloadedMediaDirectory": "Downloaded media",
   "SQLFilesDirectory": "SQL",

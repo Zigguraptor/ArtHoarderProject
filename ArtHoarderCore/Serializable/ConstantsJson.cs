@@ -6,7 +6,7 @@ internal class ConstantsJson
     public string PerceptualHashingLibs { get; set; } = null!;
     public string ArchiveMainFileName { get; init; } = null!;
     public string MetaFilesDirectory { get; init; } = null!;
-    public string MainDBName { get; init; } = null!;
+    public string MainDbName { get; init; } = null!;
     public string PHashDbsDirectory { get; init; } = null!;
     public string DownloadedMediaDirectory { get; init; } = null!;
     public string LogDirectory { get; init; } = null!;
