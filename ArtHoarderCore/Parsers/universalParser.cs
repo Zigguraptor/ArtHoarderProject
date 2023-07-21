@@ -1,6 +1,4 @@
-﻿using ArtHoarderCore.Infrastructure;
-
-namespace ArtHoarderCore.Parsers;
+﻿namespace ArtHoarderCore.Parsers;
 
 internal sealed class UniversalParser // LordParser
 {
