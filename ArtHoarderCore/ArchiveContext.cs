@@ -129,6 +129,12 @@ public class ArchiveContext : IDisposable
         return context.GalleryProfiles.ToList();
     }
 
+    public List<ProfileInfo> GetGalleryProfileInfos(Expression<Func<ProfileInfo, bool>> where)
+    {
+        using var context = new MainDbContext(WorkDirectory);
+        return context.DisplayedGalleries.Where(where).ToList();
+    }
+
     public List<Submission> GetSubmissions()
     {
         using var context = new MainDbContext(WorkDirectory);
