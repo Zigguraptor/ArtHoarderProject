@@ -49,6 +49,11 @@ public class ArchiveContext : IDisposable
 
     #region Update
 
+    public Task UpdateAllGalleriesAsync()
+    {
+        throw new NotImplementedException();
+    }
+
     public async Task<bool> UpdateUserAsync(string userName, CancellationToken cancellationToken)
     {
         using var context = new MainDbContext(WorkDirectory);
