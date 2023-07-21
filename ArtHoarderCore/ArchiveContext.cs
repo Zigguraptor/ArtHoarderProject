@@ -153,6 +153,25 @@ public class ArchiveContext : IDisposable
             .ToList();
     }
 
+    public async Task<List<FileMetaInfo>> GetFileMetaInfoByHashAsync(string hashName, Guid fileGuid)
+    {
+        if (!_perceptualHashing.GetAvailableAlgorithms().Contains(hashName))
+            return new List<FileMetaInfo>(0);
+
+        await using var pHashDbContext = new PHashDbContext(WorkDirectory, hashName);
+        var pHashInfo = await pHashDbContext.PHashInfos.FirstOrDefaultAsync(i => i.FileGuid == fileGuid);
+        if (pHashInfo is null)
+            return new List<FileMetaInfo>(0);
+
+        var guids = await pHashDbContext.PHashInfos
+            .Where(i => i.Hash == pHashInfo.Hash && i.FileGuid != fileGuid)
+            .Select(info => info.FileGuid)
+            .ToListAsync();
+
+        await using var mainDbContext = new MainDbContext(WorkDirectory);
+        return await mainDbContext.FilesMetaInfos.Where(i => guids.Contains(i.Guid)).ToListAsync();
+    }
+
     #endregion
 
     #endregion
