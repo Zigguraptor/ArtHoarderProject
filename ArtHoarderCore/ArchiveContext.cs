@@ -47,11 +47,6 @@ public class ArchiveContext : IDisposable
         }
     }
 
-    public Task<List<Uri>>? TryGetSubscriptionsAsync(Uri uri, CancellationToken cancellationToken)
-    {
-        return _universalParser.GetSubscriptions(uri, cancellationToken);
-    }
-
     #region Update
 
     public async Task<bool> UpdateUserAsync(string userName, CancellationToken cancellationToken)
@@ -83,6 +78,7 @@ public class ArchiveContext : IDisposable
 
     #region MainDbManipulations
 
+    //Add area
     public bool TryAddNewUser(string name)
     {
         using var context = new MainDbContext(WorkDirectory);
@@ -103,11 +99,7 @@ public class ArchiveContext : IDisposable
         return !TryAddNewUser(ownerName) || TryAddGalleryProfile(uri, ownerName);
     }
 
-    public string? TryGetUserName(Uri uri)
-    {
-        return _universalParser.TryGetUserName(uri);
-    }
-
+    //Get area
     public List<User> GetUsers()
     {
         using var context = new MainDbContext(WorkDirectory);
