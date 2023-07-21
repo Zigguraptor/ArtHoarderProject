@@ -62,6 +62,18 @@ public class ArchiveContext : IDisposable
         return true;
     }
 
+    public async Task UpdateGalleriesAsync(ICollection<ProfileInfo> galleries, CancellationToken cancellationToken)
+    {
+        // reporter.SetProgressStage("Galleries Updating");
+        // reporter.SetProgressBar(0, galleries.Length);
+
+        foreach (var gallery in galleries)
+        {
+            // reporter.Progress();
+            await UpdateGalleryAsync(gallery.Uri, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     public async Task<bool> UpdateGalleryAsync(Uri galleryUri, CancellationToken cancellationToken,
         string? directoryName = null)
     {
