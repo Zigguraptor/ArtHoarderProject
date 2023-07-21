@@ -52,20 +52,20 @@ public class ArchiveContext : IDisposable
         return _universalParser.GetSubscriptions(uri, cancellationToken);
     }
 
-    public async Task<bool> UpdateUser(string userName, CancellationToken cancellationToken)
+    public async Task<bool> UpdateUserAsync(string userName, CancellationToken cancellationToken)
     {
         using var context = new MainDbContext(WorkDirectory);
         var galleryProfiles = context.GalleryProfiles.Where(g => g.OwnerName == userName).ToList();
         if (galleryProfiles.Count == 0) return false;
 
         var tasks = galleryProfiles.Select(profile =>
-            UpdateGallery(profile.Uri, cancellationToken));
+            UpdateGalleryAsync(profile.Uri, cancellationToken));
         await Task.WhenAll(tasks);
 
         return true;
     }
 
-    public async Task<bool> UpdateGallery(Uri galleryUri, CancellationToken cancellationToken,
+    public async Task<bool> UpdateGalleryAsync(Uri galleryUri, CancellationToken cancellationToken,
         string? directoryName = null)
     {
         using var context = new MainDbContext(WorkDirectory);
