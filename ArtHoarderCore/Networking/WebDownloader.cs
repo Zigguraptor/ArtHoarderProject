@@ -44,4 +44,18 @@ public static class WebDownloader
     {
         return Client.GetAsync(uri);
     }
+
+    public static HtmlDocument GetHtml(Uri uri)
+    {
+        var response = Client.GetAsync(uri).Result;
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            throw new HttpRequestException("StatusCode: " + response.StatusCode + ". uri: " + uri); //TODO
+        }
+
+        var html = response.Content.ReadAsStringAsync().Result;
+        var doc = new HtmlDocument();
+        doc.LoadHtml(html);
+        return doc;
+    }
 }
