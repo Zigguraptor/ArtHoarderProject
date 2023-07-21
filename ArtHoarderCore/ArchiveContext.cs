@@ -172,6 +172,13 @@ public class ArchiveContext : IDisposable
         return await mainDbContext.FilesMetaInfos.Where(i => guids.Contains(i.Guid)).ToListAsync();
     }
 
+    public async Task<List<FileMetaInfo>> GetFilesInfoAsync(Expression<Func<FileMetaInfo, bool>> where)
+    {
+        await using var context = new MainDbContext(WorkDirectory);
+        var response = context.FilesMetaInfos.Where(where);
+        return await response.ToListAsync();
+    }
+
     #endregion
 
     #endregion
