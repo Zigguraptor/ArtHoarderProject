@@ -47,6 +47,11 @@ public class ArchiveContext : IDisposable
         }
     }
 
+    public Task<List<Uri>>? TryGetSubscriptionsAsync(Uri uri, CancellationToken cancellationToken)
+    {
+        return _universalParser.GetSubscriptions(uri, cancellationToken);
+    }
+
     public async Task<bool> UpdateUser(string userName, CancellationToken cancellationToken)
     {
         using var context = new MainDbContext(WorkDirectory);
