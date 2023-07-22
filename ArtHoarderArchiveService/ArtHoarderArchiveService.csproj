@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-ArtHoederArchiveService-28eb158a-237b-4730-9219-5db5c2377594</UserSecretsId>
+    <RootNamespace>ArtHoarderArchiveService</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
