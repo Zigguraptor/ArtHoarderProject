@@ -9,10 +9,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\ArtHoarderCore\ArtHoarderCore.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
       <Folder Include="Resources" />
     </ItemGroup>
 
@@ -32,4 +28,7 @@
       </None>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\ArtHoarderArchiveCore\ArtHoarderArchiveCore.csproj" />
+    </ItemGroup>
 </Project>
