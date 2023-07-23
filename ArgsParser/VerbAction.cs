@@ -2,7 +2,7 @@
 
 namespace ArgsParser;
 
-public class VerbAction<T> : IVerbAction
+public class VerbAction<T> : IVerbAction where T : new()
 {
     private readonly Action<T> _verbAction;
     private readonly int _minArgs = 0;
@@ -56,6 +56,11 @@ public class VerbAction<T> : IVerbAction
 
     public void Invoke(string[] args)
     {
-        throw new NotImplementedException();
+        if (args.Length < _minArgs)
+        {
+            throw new Exception(""); //TODO error
+        }
+
+        var parsedOptions = new T();
     }
 }

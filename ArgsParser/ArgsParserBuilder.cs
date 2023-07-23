@@ -15,7 +15,7 @@ public class ArgsParserBuilder
         _verbActions = new List<IVerbAction>();
     }
 
-    public ArgsParserBuilder AddVerb<T>(Action<T> verbAction)
+    public ArgsParserBuilder AddVerb<T>(Action<T> verbAction) where T : new()
     {
         _verbActions.Add(new VerbAction<T>(verbAction));
         return this;
