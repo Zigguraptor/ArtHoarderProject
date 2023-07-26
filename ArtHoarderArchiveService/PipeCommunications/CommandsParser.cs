@@ -11,6 +11,7 @@ public class CommandsParser : ICommandsParser
     {
         _argsParser = new ArgsParserBuilder()
             .AddVerb<InitVerb>()
+            .AddVerb<LoginVerb>()
             .AddVerb<AddVerb>()
             .AddVerb<UpdateVerb>()
             .AddVerb<StatusVerb>()
