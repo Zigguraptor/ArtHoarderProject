@@ -7,7 +7,4 @@
         <Nullable>enable</Nullable>
         <RootNamespace>ArtHoarderArchive</RootNamespace>
     </PropertyGroup>
-    <ItemGroup>
-      <Folder Include="CommandOptions\" />
-    </ItemGroup>
 </Project>
