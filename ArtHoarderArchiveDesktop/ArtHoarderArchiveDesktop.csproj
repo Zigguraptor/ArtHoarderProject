@@ -27,8 +27,4 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\ArtHoarderArchiveCore\ArtHoarderArchiveCore.csproj" />
-    </ItemGroup>
 </Project>

@@ -13,7 +13,7 @@ namespace ArtHoarderArchiveService
 
         public void StartParallelTask(ArtHoarderTask artHoarderTask, CancellationToken cancellationToken)
         {
-            artHoarderTask.Start(cancellationToken);
+            artHoarderTask.Start(FinalizeTask, cancellationToken);
             _runningTasks.Add(artHoarderTask);
         }
 
@@ -28,10 +28,17 @@ namespace ArtHoarderArchiveService
             if (_runningTasks.Count == 0 && _tasksQueue.Count > 0)
             {
                 var t = _tasksQueue.Dequeue();
-                t.Start();
+                t.Start(FinalizeTask);
                 _runningTasks.Add(t);
             }
         }
-        
+
+        private void FinalizeTask(ArtHoarderTask artHoarderTask)
+        {
+            if (!_runningTasks.Remove(artHoarderTask))
+            {
+                _logger.LogWarning("List of running tasks does not contain task: {Task}.", artHoarderTask.ToString());
+            }
+        }
     }
 }
