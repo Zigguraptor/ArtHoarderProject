@@ -1,3 +1,5 @@
+using ArtHoarderArchiveService.PipeCommunications;
+
 namespace ArtHoarderArchiveService
 {
     public class Program
@@ -5,7 +7,7 @@ namespace ArtHoarderArchiveService
         public static void Main(string[] args)
         {
             IHost host = Host.CreateDefaultBuilder(args)
-                .ConfigureServices(services => { services.AddHostedService<ArtHoarderService>(); })
+                .ConfigureServices(services => { services.AddHostedService<NamedPipeCommunicator>(); })
                 .Build();
 
             host.Run();
