@@ -2,4 +2,5 @@
 
 public interface ICommandsParser
 {
+    public ArtHoarderTask ParsCommand(string command);
 }
