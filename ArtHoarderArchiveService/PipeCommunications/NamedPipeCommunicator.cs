@@ -59,7 +59,8 @@ public class NamedPipeCommunicator : BackgroundService, INamedPipeCommunicator
             var command = streamString.ReadString();
             if (command != null)
             {
-                var artHoarderTask = _commandsParser.ParsCommand(command);
+                var parsedTuple = _commandsParser.ParsCommand(command);
+                var artHoarderTask = new ArtHoarderTask(parsedTuple.path, parsedTuple.verb, streamString);
                 if (artHoarderTask.TaskStatus == TaskStatus.Broken)
                 {
                     task = null;

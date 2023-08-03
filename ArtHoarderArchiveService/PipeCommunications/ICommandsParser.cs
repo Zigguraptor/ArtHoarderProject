@@ -1,6 +1,8 @@
-﻿namespace ArtHoarderArchiveService.PipeCommunications;
+﻿using ArtHoarderArchiveService.PipeCommunications.Verbs;
+
+namespace ArtHoarderArchiveService.PipeCommunications;
 
 public interface ICommandsParser
 {
-    public ArtHoarderTask ParsCommand(string command);
+    public (string path, BaseVerb verb) ParsCommand(string command);
 }

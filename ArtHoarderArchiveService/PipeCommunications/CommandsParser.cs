@@ -21,7 +21,8 @@ public class CommandsParser : ICommandsParser
             .Build();
     }
 
-    public ArtHoarderTask ParsCommand(string command)
+
+    public (string path, BaseVerb verb) ParsCommand(string command)
     {
         var strings = SplitCommand(command);
         var path = strings[0];

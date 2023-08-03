@@ -1,9 +1,15 @@
-﻿namespace ArtHoarderArchiveService;
+﻿using ArtHoarderArchiveService.PipeCommunications;
+using ArtHoarderArchiveService.PipeCommunications.Verbs;
+
+namespace ArtHoarderArchiveService;
 
 public class ArtHoarderTask
 {
     private readonly string _path;
-    private readonly object _parsedObject;
+    private readonly BaseVerb _verb;
+    private readonly StreamString _streamString;
+    private Action<ArtHoarderTask>? _endCallback;
+
     public readonly Guid TaskGuide = Guid.NewGuid();
     public readonly DateTime CreationDateTime = Time.NowUtcDataTime();
 
@@ -11,10 +17,11 @@ public class ArtHoarderTask
     public TaskStatus TaskStatus { get; private set; } = TaskStatus.Created;
     public DateTime ExecutionDateTime { get; private set; }
 
-    public ArtHoarderTask(string path, object parsedObject)
+    public ArtHoarderTask(string path, BaseVerb verb, StreamString streamString)
     {
         _path = path;
-        _parsedObject = parsedObject;
+        _verb = verb;
+        _streamString = streamString;
     }
 
     public void Cancel()
@@ -24,13 +31,22 @@ public class ArtHoarderTask
         //And register Cansel() in CancellationToken in Start()
     }
 
-    public void Start()
+    public void Start(Action<ArtHoarderTask> endCallback)
     {
-        Start(new CancellationToken(false));
+        Start(endCallback, new CancellationToken(false));
     }
 
-    public void Start(CancellationToken cancellationToken)
+    public void Start(Action<ArtHoarderTask> endCallback, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        _endCallback = endCallback;
+        if (_verb.Invoke(_path, cancellationToken).IsOk) return; //TODO errors
+
+        TaskStatus = TaskStatus.Broken;
+        endCallback.Invoke(this);
+    }
+
+    public override string ToString()
+    {
+        return TaskGuide + " " + CreationDateTime + " " + _path + " " + _verb + " " + TaskStatus;
     }
 }
