@@ -39,10 +39,22 @@ public class ArtHoarderTask
     public void Start(Action<ArtHoarderTask> endCallback, CancellationToken cancellationToken)
     {
         _endCallback = endCallback;
-        if (_verb.Invoke(_path, cancellationToken).IsOk) return; //TODO errors
+        if (_verb.Invoke(WriteStatus, _path, cancellationToken).IsOk) return; //TODO errors
 
         TaskStatus = TaskStatus.Broken;
+
+        EndTask();
         endCallback.Invoke(this);
+    }
+
+    private void WriteStatus(string message)
+    {
+        _streamString.WriteString(message);
+    }
+
+    private void EndTask()
+    {
+        _streamString.WriteString("#End");
     }
 
     public override string ToString()

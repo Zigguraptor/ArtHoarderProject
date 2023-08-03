@@ -17,7 +17,7 @@ public class AddVerb : BaseVerb
     [Option('a', "auto-names", HelpText = "Automatically assign names (if you add galleries)")]
     public bool AutoNames { get; set; }
 
-    public override bool Validate(out List<string> errors)
+    public override bool Validate(out List<string>? errors)
     {
         errors = new List<string>();
         if (Gallery == null)
@@ -57,12 +57,12 @@ public class AddVerb : BaseVerb
         return true;
     }
 
-    public override ActionResult Invoke(string path, CancellationToken cancellationToken)
+    public override ActionResult Invoke(Action<string> writeStatus, string path, CancellationToken cancellationToken)
     {
-        return UserNames != null ? AddUsers(path) : AddGalleries(path);
+        return UserNames != null ? AddUsers(writeStatus, path) : AddGalleries(writeStatus, path);
     }
 
-    private ActionResult AddUsers(string path)
+    private ActionResult AddUsers(Action<string> writeStatus, string path)
     {
         if (UserNames == null)
             throw new Exception();
@@ -71,12 +71,12 @@ public class AddVerb : BaseVerb
         return context.TryAddNewUsers(UserNames);
     }
 
-    private ActionResult AddGalleries(string path)
+    private ActionResult AddGalleries(Action<string> writeStatus, string path)
     {
-        return !AutoNames ? AddGalleriesNoAutoNames(path) : AddGalleriesAutoNames(path);
+        return !AutoNames ? AddGalleriesNoAutoNames(writeStatus, path) : AddGalleriesAutoNames(writeStatus, path);
     }
 
-    private ActionResult AddGalleriesNoAutoNames(string path)
+    private ActionResult AddGalleriesNoAutoNames(Action<string> writeStatus, string path)
     {
         if (Gallery == null)
             throw new Exception();
@@ -100,7 +100,9 @@ public class AddVerb : BaseVerb
             }
             else
             {
-                actionResult.AddError($"\"{Gallery[i]}\" is not uri.");
+                var msg = $"\"{Gallery[i]}\" is not uri.";
+                writeStatus.Invoke(msg);
+                actionResult.AddError(msg);
             }
         }
 
@@ -114,7 +116,7 @@ public class AddVerb : BaseVerb
         return actionResult + context.TryAddNewGalleries(uris, names);
     }
 
-    private ActionResult AddGalleriesAutoNames(string path)
+    private ActionResult AddGalleriesAutoNames(Action<string> writeStatus, string path)
     {
         if (Gallery == null)
             throw new Exception();
@@ -129,7 +131,9 @@ public class AddVerb : BaseVerb
             }
             else
             {
-                actionResult.AddError($"\"{s}\" is not uri.");
+                var msg = $"\"{s}\" is not uri.";
+                writeStatus.Invoke(msg);
+                actionResult.AddError(msg);
             }
         }
 
