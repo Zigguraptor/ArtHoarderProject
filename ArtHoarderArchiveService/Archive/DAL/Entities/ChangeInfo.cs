@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ArtHoarderCore.DAL.Entities;
+namespace ArtHoarderArchiveService.Archive.DAL.Entities;
 
 public class ChangeInfo
 {

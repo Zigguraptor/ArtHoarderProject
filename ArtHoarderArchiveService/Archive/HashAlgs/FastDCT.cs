@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
-using ArtHoarderCore.Infrastructure;
+using ArtHoarderArchiveService.Archive.Infrastructure;
 
-namespace ArtHoarderCore.HashAlgs;
+namespace ArtHoarderArchiveService.Archive.HashAlgs;
 
 public class FastDct : IPerceptualHashAlgorithm
 {

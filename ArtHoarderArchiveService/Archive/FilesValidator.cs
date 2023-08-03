@@ -1,8 +1,8 @@
 ﻿using System.IO.Hashing;
-using ArtHoarderCore.DAL;
-using ArtHoarderCore.Managers;
+using ArtHoarderArchiveService.Archive.DAL;
+using ArtHoarderArchiveService.Archive.Managers;
 
-namespace ArtHoarderCore;
+namespace ArtHoarderArchiveService.Archive;
 
 internal static class FilesValidator
 {

@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
-using ArtHoarderCore.Managers;
+using ArtHoarderArchiveService.Archive.Managers;
 
-namespace ArtHoarderCore.DAL.Entities;
+namespace ArtHoarderArchiveService.Archive.DAL.Entities;
 
 public class FullSubmissionInfo
 {

@@ -1,4 +1,4 @@
-﻿namespace ArtHoarderCore.Infrastructure;
+﻿namespace ArtHoarderArchiveService.Archive.Infrastructure;
 
 public interface IPerceptualHashAlgorithm
 {

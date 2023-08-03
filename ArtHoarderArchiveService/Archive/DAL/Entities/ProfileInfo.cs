@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ArtHoarderCore.DAL.Entities;
+namespace ArtHoarderArchiveService.Archive.DAL.Entities;
 
 public class ProfileInfo
 {

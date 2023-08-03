@@ -1,10 +1,10 @@
 ﻿using System.Globalization;
-using ArtHoarderCore.DAL.Entities;
-using ArtHoarderCore.Networking;
-using ArtHoarderCore.Parsers.Settings;
+using ArtHoarderArchiveService.Archive.DAL.Entities;
+using ArtHoarderArchiveService.Archive.Networking;
+using ArtHoarderArchiveService.Archive.Parsers.Settings;
 using HtmlAgilityPack;
 
-namespace ArtHoarderCore.Parsers;
+namespace ArtHoarderArchiveService.Archive.Parsers;
 
 internal class ParserTypeW : Parser
 {

@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using ArtHoarderCore.Parsers;
+using ArtHoarderArchiveService.Archive.Parsers;
 
-namespace ArtHoarderCore.DAL.Entities;
+namespace ArtHoarderArchiveService.Archive.DAL.Entities;
 
 public class Submission
 {

@@ -1,7 +1,7 @@
-﻿using ArtHoarderCore.DAL;
-using ArtHoarderCore.DAL.Entities;
+﻿using ArtHoarderArchiveService.Archive.DAL;
+using ArtHoarderArchiveService.Archive.DAL.Entities;
 
-namespace ArtHoarderCore.Infrastructure;
+namespace ArtHoarderArchiveService.Archive.Infrastructure;
 
 public class UnregisteredFile : IDisplayViewItem
 {

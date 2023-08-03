@@ -1,6 +1,6 @@
-﻿using ArtHoarderCore.DAL.Entities;
+﻿using ArtHoarderArchiveService.Archive.DAL.Entities;
 
-namespace ArtHoarderCore.Infrastructure;
+namespace ArtHoarderArchiveService.Archive.Infrastructure;
 
 public interface IDisplayViewItem
 {

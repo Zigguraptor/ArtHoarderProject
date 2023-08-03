@@ -1,4 +1,4 @@
-﻿namespace ArtHoarderCore.Serializable;
+﻿namespace ArtHoarderArchiveService.Archive.Serializable;
 
 internal class ConstantsJson
 {

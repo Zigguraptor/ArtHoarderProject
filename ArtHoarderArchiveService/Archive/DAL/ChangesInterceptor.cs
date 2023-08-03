@@ -1,8 +1,8 @@
-﻿using ArtHoarderCore.DAL.Entities;
+﻿using ArtHoarderArchiveService.Archive.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
-namespace ArtHoarderCore.DAL;
+namespace ArtHoarderArchiveService.Archive.DAL;
 
 internal class ChangesInterceptor : ISaveChangesInterceptor
 {

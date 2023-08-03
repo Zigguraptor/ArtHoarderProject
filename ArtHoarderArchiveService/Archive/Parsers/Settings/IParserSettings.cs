@@ -1,4 +1,4 @@
-﻿namespace ArtHoarderCore.Parsers.Settings;
+﻿namespace ArtHoarderArchiveService.Archive.Parsers.Settings;
 
 internal interface IParserSettings
 {

@@ -1,4 +1,4 @@
-﻿namespace ArtHoarderCore.Infrastructure.Enums;
+﻿namespace ArtHoarderArchiveService.Archive.Infrastructure.Enums;
 
 public enum CreationCode
 {

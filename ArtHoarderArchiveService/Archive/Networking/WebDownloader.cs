@@ -2,7 +2,7 @@
 using System.Threading.RateLimiting;
 using HtmlAgilityPack;
 
-namespace ArtHoarderCore.Networking;
+namespace ArtHoarderArchiveService.Archive.Networking;
 
 public static class WebDownloader
 {

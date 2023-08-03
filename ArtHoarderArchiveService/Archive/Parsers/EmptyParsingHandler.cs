@@ -1,6 +1,6 @@
-﻿using ArtHoarderCore.DAL.Entities;
+﻿using ArtHoarderArchiveService.Archive.DAL.Entities;
 
-namespace ArtHoarderCore.Parsers;
+namespace ArtHoarderArchiveService.Archive.Parsers;
 
 public class EmptyParsingHandler : IParsHandler
 {

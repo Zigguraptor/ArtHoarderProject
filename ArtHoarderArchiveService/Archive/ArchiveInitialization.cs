@@ -1,11 +1,11 @@
 ﻿using System.Text.Json;
-using ArtHoarderCore.DAL;
-using ArtHoarderCore.Infrastructure.Enums;
-using ArtHoarderCore.Managers;
-using ArtHoarderCore.Serializable;
+using ArtHoarderArchiveService.Archive.DAL;
+using ArtHoarderArchiveService.Archive.Infrastructure.Enums;
+using ArtHoarderArchiveService.Archive.Managers;
+using ArtHoarderArchiveService.Archive.Serializable;
 using Microsoft.EntityFrameworkCore;
 
-namespace ArtHoarderCore;
+namespace ArtHoarderArchiveService.Archive;
 
 internal static class ArchiveInitialization
 {

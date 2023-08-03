@@ -1,8 +1,8 @@
-﻿using ArtHoarderCore.DAL.Entities;
-using ArtHoarderCore.Managers;
+﻿using ArtHoarderArchiveService.Archive.DAL.Entities;
+using ArtHoarderArchiveService.Archive.Managers;
 using Microsoft.EntityFrameworkCore;
 
-namespace ArtHoarderCore.DAL;
+namespace ArtHoarderArchiveService.Archive.DAL;
 
 internal sealed class MainDbContext : DbContext
 {

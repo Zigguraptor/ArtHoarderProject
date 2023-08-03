@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 
-namespace ArtHoarderCore;
+namespace ArtHoarderArchiveService.Archive;
 
 public static class Time
 {

@@ -1,9 +1,9 @@
 ﻿using System.Text;
-using ArtHoarderCore.Managers;
-using ArtHoarderCore.Parsers.Settings;
+using ArtHoarderArchiveService.Archive.Managers;
+using ArtHoarderArchiveService.Archive.Parsers.Settings;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
-namespace ArtHoarderCore.Parsers;
+namespace ArtHoarderArchiveService.Archive.Parsers;
 
 internal static class ParserFactory
 {

@@ -2,7 +2,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace ArtHoarderCore.DAL.Entities;
+namespace ArtHoarderArchiveService.Archive.DAL.Entities;
 
 [Index(nameof(LocalFilePath), Name = "LocalFilePath", IsUnique = true)]
 [Index(nameof(XxHash), Name = "XxHash", IsUnique = false)]

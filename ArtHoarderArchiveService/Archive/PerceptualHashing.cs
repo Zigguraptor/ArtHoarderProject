@@ -1,10 +1,10 @@
-﻿using ArtHoarderCore.DAL;
-using ArtHoarderCore.DAL.Entities;
-using ArtHoarderCore.HashAlgs;
-using ArtHoarderCore.Infrastructure;
+﻿using ArtHoarderArchiveService.Archive.DAL;
+using ArtHoarderArchiveService.Archive.DAL.Entities;
+using ArtHoarderArchiveService.Archive.HashAlgs;
+using ArtHoarderArchiveService.Archive.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
-namespace ArtHoarderCore;
+namespace ArtHoarderArchiveService.Archive;
 
 internal class PerceptualHashing
 {

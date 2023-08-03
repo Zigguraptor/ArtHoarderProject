@@ -1,7 +1,7 @@
-﻿using ArtHoarderCore.DAL.Entities;
+﻿using ArtHoarderArchiveService.Archive.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace ArtHoarderCore.DAL;
+namespace ArtHoarderArchiveService.Archive.DAL;
 
 internal sealed class ChangesAuditContext : DbContext
 {

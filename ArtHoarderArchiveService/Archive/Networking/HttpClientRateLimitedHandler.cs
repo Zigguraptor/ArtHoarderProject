@@ -2,7 +2,7 @@
 using System.Net;
 using System.Threading.RateLimiting;
 
-namespace ArtHoarderCore.Networking;
+namespace ArtHoarderArchiveService.Archive.Networking;
 
 internal sealed class HttpClientRateLimitedHandler : DelegatingHandler, IAsyncDisposable
 {

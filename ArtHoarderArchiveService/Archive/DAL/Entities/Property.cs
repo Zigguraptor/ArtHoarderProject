@@ -1,4 +1,4 @@
-﻿namespace ArtHoarderCore.DAL.Entities;
+﻿namespace ArtHoarderArchiveService.Archive.DAL.Entities;
 
 public class Property
 {

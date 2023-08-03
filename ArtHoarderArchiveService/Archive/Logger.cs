@@ -1,6 +1,6 @@
-﻿using ArtHoarderCore.Managers;
+﻿using ArtHoarderArchiveService.Archive.Managers;
 
-namespace ArtHoarderCore;
+namespace ArtHoarderArchiveService.Archive;
 
 public class Logger : IDisposable
 {

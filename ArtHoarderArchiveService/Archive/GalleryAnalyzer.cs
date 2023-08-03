@@ -1,6 +1,6 @@
-﻿using ArtHoarderCore.Parsers;
+﻿using ArtHoarderArchiveService.Archive.Parsers;
 
-namespace ArtHoarderCore;
+namespace ArtHoarderArchiveService.Archive;
 
 //В этом классе должны быть только те методы, которые не влияют на архив. Что логично.
 public static class GalleryAnalyzer

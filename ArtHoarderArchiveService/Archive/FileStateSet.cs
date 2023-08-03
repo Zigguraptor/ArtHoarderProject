@@ -1,4 +1,4 @@
-﻿namespace ArtHoarderCore;
+﻿namespace ArtHoarderArchiveService.Archive;
 
 public class FileStateSet
 {

@@ -1,9 +1,9 @@
 ﻿using System.Threading.Channels;
-using ArtHoarderCore.DAL.Entities;
-using ArtHoarderCore.Networking;
+using ArtHoarderArchiveService.Archive.DAL.Entities;
+using ArtHoarderArchiveService.Archive.Networking;
 using HtmlAgilityPack;
 
-namespace ArtHoarderCore.Parsers;
+namespace ArtHoarderArchiveService.Archive.Parsers;
 
 internal abstract class Parser
 {

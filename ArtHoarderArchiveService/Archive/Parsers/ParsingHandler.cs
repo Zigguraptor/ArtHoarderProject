@@ -1,8 +1,8 @@
-﻿using ArtHoarderCore.DAL;
-using ArtHoarderCore.DAL.Entities;
+﻿using ArtHoarderArchiveService.Archive.DAL;
+using ArtHoarderArchiveService.Archive.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace ArtHoarderCore.Parsers;
+namespace ArtHoarderArchiveService.Archive.Parsers;
 
 internal class ParsingHandler : IParsHandler
 {

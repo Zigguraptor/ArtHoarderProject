@@ -1,4 +1,4 @@
-﻿namespace ArtHoarderCore.Parsers;
+﻿namespace ArtHoarderArchiveService.Archive.Parsers;
 
 public class ParsedSubmission
 {

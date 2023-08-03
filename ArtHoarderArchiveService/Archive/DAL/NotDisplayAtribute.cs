@@ -1,4 +1,4 @@
-﻿namespace ArtHoarderCore.DAL;
+﻿namespace ArtHoarderArchiveService.Archive.DAL;
 
 public class NotDisplayAttribute : Attribute 
 {

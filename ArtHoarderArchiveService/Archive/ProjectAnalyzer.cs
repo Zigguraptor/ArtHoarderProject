@@ -1,7 +1,6 @@
-﻿using ArtHoarderCore.Infrastructure;
-using ArtHoarderCore.Parsers;
+﻿using ArtHoarderArchiveService.Archive.Parsers;
 
-namespace ArtHoarderCore;
+namespace ArtHoarderArchiveService.Archive;
 
 public static class ProjectAnalyzer
 {
