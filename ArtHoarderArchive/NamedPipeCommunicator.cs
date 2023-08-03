@@ -47,9 +47,12 @@ public class NamedPipeCommunicator
         var s = streamString.ReadString();
         while (s != null)
         {
-            if (s[0] == '#')
+            if (s.Length > 0 && s[0] == '#')
             {
-                //TODO
+                if (s == "#End")
+                    return;
+                
+                CommandParser.ParsCommand(s);
             }
             else
             {
