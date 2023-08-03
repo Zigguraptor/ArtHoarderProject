@@ -14,23 +14,38 @@ public class ProgressBar
     public string Msg { get; set; } = string.Empty;
     public List<ProgressBar> SubBars { get; } = new();
 
-    public void AddSubBar(string parent, ProgressBar progressBar)
+    public void UpdateBar(IEnumerable<string> name, string msg)
     {
-        Find(parent)?.SubBars.Add(progressBar);
-    }
+        var enumerator = name.GetEnumerator();
+        enumerator.Reset();
+        if (!enumerator.MoveNext()) return;
+        if (Name != enumerator.Current) return;
 
-    public void UpdateBar(string name, string msg)
-    {
-        var progressBar = Find(name);
+        var progressBar = this;
+        if (enumerator.MoveNext())
+            progressBar = Find(enumerator);
+
         if (progressBar == null) return;
         progressBar.Current++;
         progressBar.Msg = msg;
     }
 
-    private ProgressBar? Find(string name)
+    private ProgressBar? Find(IEnumerator<string> enumerator)
     {
-        if (Name == name) return this;
-        return SubBars.Select(progressBar => progressBar.Find(name)).FirstOrDefault(bar => bar != null);
+        foreach (var progressBar in SubBars)
+        {
+            if (progressBar.Name != enumerator.Current) continue;
+            if (enumerator.MoveNext())
+            {
+                progressBar.Find(enumerator);
+            }
+            else
+            {
+                return progressBar;
+            }
+        }
+
+        return null;
     }
 
     private void Delete(IEnumerator<string> enumerator)
@@ -55,7 +70,7 @@ public class ProgressBar
     {
         var enumerator = name.GetEnumerator();
         enumerator.Reset();
-        if (enumerator.MoveNext())
+        if (enumerator.MoveNext() && enumerator.MoveNext())
             Delete(enumerator);
     }
 }

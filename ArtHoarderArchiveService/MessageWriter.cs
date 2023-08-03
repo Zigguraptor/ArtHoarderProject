@@ -30,9 +30,9 @@ public class MessageWriter : IMessageWriter
         _streamString.WriteString(LogCommand + logLevel + ' ' + message);
     }
 
-    public void UpdateProgressBar(string name, string msg)
+    public void UpdateProgressBar(string[] path, string msg)
     {
-        _progressBar?.UpdateBar(name, msg);
+        _progressBar?.UpdateBar(path, msg);
         UpdateProgressBar();
     }
 
@@ -40,8 +40,16 @@ public class MessageWriter : IMessageWriter
     {
         if (_progressBar == null) return;
         if (path.Length <= 0) return;
+        if (_progressBar.Name != path[0]) return;
+        if (path.Length == 1)
+        {
+            _progressBar = null;
+        }
+        else
+        {
+            _progressBar.Delete(path);
+        }
 
-        _progressBar.Delete(path);
         UpdateProgressBar();
     }
 
