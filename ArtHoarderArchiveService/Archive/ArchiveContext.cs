@@ -2,16 +2,16 @@
 using System.Linq.Expressions;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using ArtHoarderCore.DAL;
-using ArtHoarderCore.DAL.Entities;
-using ArtHoarderCore.Infrastructure.Enums;
-using ArtHoarderCore.Managers;
-using ArtHoarderCore.Networking;
-using ArtHoarderCore.Parsers;
-using ArtHoarderCore.Serializable;
+using ArtHoarderArchiveService.Archive.DAL;
+using ArtHoarderArchiveService.Archive.DAL.Entities;
+using ArtHoarderArchiveService.Archive.Infrastructure.Enums;
+using ArtHoarderArchiveService.Archive.Managers;
+using ArtHoarderArchiveService.Archive.Networking;
+using ArtHoarderArchiveService.Archive.Parsers;
+using ArtHoarderArchiveService.Archive.Serializable;
 using Microsoft.EntityFrameworkCore;
 
-namespace ArtHoarderCore;
+namespace ArtHoarderArchiveService.Archive;
 
 public class ArchiveContext : IDisposable
 {
@@ -95,7 +95,23 @@ public class ArchiveContext : IDisposable
 
     #region MainDbManipulations
 
-    //Add area
+    #region Add
+
+    public ActionResult TryAddNewUsers(IEnumerable<string> names)
+    {
+        var actionResult = new ActionResult();
+
+        foreach (var name in names)
+        {
+            if (!TryAddNewUser(name))
+                actionResult.Errors.Add($"\"{name}\" name already exists.");
+        }
+
+        if (actionResult.Errors.Count > 0)
+            actionResult.IsOk = false;
+        return actionResult;
+    }
+
     public bool TryAddNewUser(string name)
     {
         using var context = new MainDbContext(WorkDirectory);
@@ -110,13 +126,46 @@ public class ArchiveContext : IDisposable
         return TrySaveDbChanges(context);
     }
 
+    public ActionResult TryAddNewGalleries(List<Uri> uris)
+    {
+        var names = new List<string>(uris.Count);
+        if (names == null) throw new ArgumentNullException(nameof(names));
+        foreach (var uri in uris)
+        {
+            names.Add(GalleryAnalyzer.TryGetUserName(uri) ?? string.Empty); //TODO string.Empty is ok? 
+        }
+
+        return TryAddNewGalleries(uris, names);
+    }
+
+    public ActionResult TryAddNewGalleries(List<Uri> uris, List<string> ownerNames)
+    {
+        var actionResult = new ActionResult();
+
+        if (uris.Count != ownerNames.Count)
+            throw new ArgumentException(); //TODO
+
+        for (var i = 0; i < uris.Count; i++)
+        {
+            if (!TryAddNewGallery(uris[i], ownerNames[i]))
+                actionResult.Errors.Add($"Gallery \"{uris[i]}\" already exists.");
+        }
+
+        if (actionResult.Errors.Count > 0)
+            actionResult.IsOk = false;
+        return actionResult;
+    }
+
     public bool TryAddNewGallery(Uri uri, string ownerName)
     {
         if (TryAddGalleryProfile(uri, ownerName)) return true;
         return !TryAddNewUser(ownerName) || TryAddGalleryProfile(uri, ownerName);
     }
 
-    //Get area
+    #endregion
+
+    #region Get
+
     public List<User> GetUsers()
     {
         using var context = new MainDbContext(WorkDirectory);
@@ -178,6 +227,8 @@ public class ArchiveContext : IDisposable
         var response = context.FilesMetaInfos.Where(where);
         return await response.ToListAsync();
     }
+
+    #endregion
 
     #endregion
 
