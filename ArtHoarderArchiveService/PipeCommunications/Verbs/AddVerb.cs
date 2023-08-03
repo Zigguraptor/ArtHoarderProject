@@ -57,39 +57,44 @@ public class AddVerb : BaseVerb
         return true;
     }
 
-    public override ActionResult Invoke(Action<string> writeStatus, string path, CancellationToken cancellationToken)
+    public override void Invoke(IMessageWriter statusWriter, string path, CancellationToken cancellationToken)
     {
-        return UserNames != null ? AddUsers(writeStatus, path) : AddGalleries(writeStatus, path);
+        if (UserNames != null)
+            AddUsers(statusWriter, path);
+        else
+            AddGalleries(statusWriter, path);
     }
 
-    private ActionResult AddUsers(Action<string> writeStatus, string path)
+    private void AddUsers(IMessageWriter statusWriter, string path)
     {
         if (UserNames == null)
             throw new Exception();
 
         using var context = new ArchiveContext(path);
-        return context.TryAddNewUsers(UserNames);
+
+        context.TryAddNewUsers(statusWriter, UserNames);
     }
 
-    private ActionResult AddGalleries(Action<string> writeStatus, string path)
+    private void AddGalleries(IMessageWriter statusWriter, string path)
     {
-        return !AutoNames ? AddGalleriesNoAutoNames(writeStatus, path) : AddGalleriesAutoNames(writeStatus, path);
+        if (!AutoNames)
+            AddGalleriesNoAutoNames(statusWriter, path);
+        else
+            AddGalleriesAutoNames(statusWriter, path);
     }
 
-    private ActionResult AddGalleriesNoAutoNames(Action<string> writeStatus, string path)
+    private void AddGalleriesNoAutoNames(IMessageWriter statusWriter, string path)
     {
         if (Gallery == null)
             throw new Exception();
 
-        var actionResult = new ActionResult();
         var uris = new List<Uri>();
 
         if (Gallery.Count % 2 != 0)
         {
             //TODO
-            actionResult.AddError("");
-            actionResult.IsOk = false;
-            return actionResult;
+            statusWriter.Write("Args error");
+            return;
         }
 
         for (var i = 1; i < Gallery.Count; i += 2)
@@ -100,9 +105,7 @@ public class AddVerb : BaseVerb
             }
             else
             {
-                var msg = $"\"{Gallery[i]}\" is not uri.";
-                writeStatus.Invoke(msg);
-                actionResult.AddError(msg);
+                statusWriter.Write($"\"{Gallery[i]}\" is not uri.");
             }
         }
 
@@ -113,15 +116,14 @@ public class AddVerb : BaseVerb
         }
 
         using var context = new ArchiveContext(path);
-        return actionResult + context.TryAddNewGalleries(uris, names);
+        context.TryAddNewGalleries(statusWriter, uris, names); //TODO
     }
 
-    private ActionResult AddGalleriesAutoNames(Action<string> writeStatus, string path)
+    private void AddGalleriesAutoNames(IMessageWriter statusWriter, string path)
     {
         if (Gallery == null)
             throw new Exception();
 
-        var actionResult = new ActionResult();
         var uris = new List<Uri>();
         foreach (var s in Gallery)
         {
@@ -131,15 +133,11 @@ public class AddVerb : BaseVerb
             }
             else
             {
-                var msg = $"\"{s}\" is not uri.";
-                writeStatus.Invoke(msg);
-                actionResult.AddError(msg);
+                statusWriter.Write($"\"{s}\" is not uri.");
             }
         }
 
-        if (actionResult.Errors.Count > 0) actionResult.IsOk = false;
-
         using var context = new ArchiveContext(path);
-        return actionResult + context.TryAddNewGalleries(uris);
+        context.TryAddNewGalleries(statusWriter, uris); //TODO
     }
 }

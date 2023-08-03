@@ -97,19 +97,13 @@ public class ArchiveContext : IDisposable
 
     #region Add
 
-    public ActionResult TryAddNewUsers(IEnumerable<string> names)
+    public void TryAddNewUsers(IMessageWriter messageWriter, IEnumerable<string> names)
     {
-        var actionResult = new ActionResult();
-
         foreach (var name in names)
         {
             if (!TryAddNewUser(name))
-                actionResult.Errors.Add($"\"{name}\" name already exists.");
+                messageWriter.Write($"\"{name}\" name already exists.");
         }
-
-        if (actionResult.Errors.Count > 0)
-            actionResult.IsOk = false;
-        return actionResult;
     }
 
     public bool TryAddNewUser(string name)
@@ -126,7 +120,7 @@ public class ArchiveContext : IDisposable
         return TrySaveDbChanges(context);
     }
 
-    public ActionResult TryAddNewGalleries(List<Uri> uris)
+    public void TryAddNewGalleries(IMessageWriter statusWriter, List<Uri> uris)
     {
         var names = new List<string>(uris.Count);
         if (names == null) throw new ArgumentNullException(nameof(names));
@@ -135,25 +129,19 @@ public class ArchiveContext : IDisposable
             names.Add(GalleryAnalyzer.TryGetUserName(uri) ?? string.Empty); //TODO string.Empty is ok? 
         }
 
-        return TryAddNewGalleries(uris, names);
+        TryAddNewGalleries(statusWriter, uris, names); //TODO
     }
 
-    public ActionResult TryAddNewGalleries(List<Uri> uris, List<string> ownerNames)
+    public void TryAddNewGalleries(IMessageWriter statusWriter, List<Uri> uris, List<string> ownerNames)
     {
-        var actionResult = new ActionResult();
-
         if (uris.Count != ownerNames.Count)
             throw new ArgumentException(); //TODO
 
         for (var i = 0; i < uris.Count; i++)
         {
             if (!TryAddNewGallery(uris[i], ownerNames[i]))
-                actionResult.Errors.Add($"Gallery \"{uris[i]}\" already exists.");
+                statusWriter.Write($"Gallery \"{uris[i]}\" already exists.");
         }
-
-        if (actionResult.Errors.Count > 0)
-            actionResult.IsOk = false;
-        return actionResult;
     }
 
     public bool TryAddNewGallery(Uri uri, string ownerName)
