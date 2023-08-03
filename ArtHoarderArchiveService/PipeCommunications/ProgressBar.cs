@@ -1,76 +1,59 @@
-﻿namespace ArtHoarderArchiveService.PipeCommunications;
+﻿using System.Text.Json.Serialization;
 
-public class ProgressBar
+namespace ArtHoarderArchiveService.PipeCommunications;
+
+public sealed class ProgressBar : IProgressWriter
 {
-    public ProgressBar(string name, byte max)
-    {
-        Name = name;
-        Max = max;
-    }
-
+    [JsonIgnore] private readonly IMessageWriter _messageWriter;
+    [JsonIgnore] private readonly Action<ProgressBar> _dispose;
     public string Name { get; }
     public int Max { get; }
     public int Current { get; set; } = 0;
     public string Msg { get; set; } = string.Empty;
     public List<ProgressBar> SubBars { get; } = new();
 
-    public void UpdateBar(IEnumerable<string> name, string msg)
+    public ProgressBar(IMessageWriter messageWriter, string name, int max, Action<ProgressBar> dispose)
     {
-        var enumerator = name.GetEnumerator();
-        enumerator.Reset();
-        if (!enumerator.MoveNext()) return;
-        if (Name != enumerator.Current) return;
-
-        var progressBar = this;
-        if (enumerator.MoveNext())
-            progressBar = Find(enumerator);
-
-        if (progressBar == null) return;
-        progressBar.Current++;
-        progressBar.Msg = msg;
+        Name = name;
+        Max = max;
+        _messageWriter = messageWriter;
+        _dispose = dispose;
     }
 
-    private ProgressBar? Find(IEnumerator<string> enumerator)
+    public ProgressBar(IMessageWriter messageWriter, string name, int max, string msg, Action<object> dispose)
+        : this(messageWriter, name, max, dispose)
     {
-        foreach (var progressBar in SubBars)
-        {
-            if (progressBar.Name != enumerator.Current) continue;
-            if (enumerator.MoveNext())
-            {
-                progressBar.Find(enumerator);
-            }
-            else
-            {
-                return progressBar;
-            }
-        }
-
-        return null;
+        Msg = msg;
     }
 
-    private void Delete(IEnumerator<string> enumerator)
-    {
-        foreach (var progressBar in SubBars)
-        {
-            if (progressBar.Name != enumerator.Current) continue;
+    public void Dispose() => _dispose.Invoke(this);
 
-            if (enumerator.MoveNext())
-            {
-                progressBar.Delete(enumerator);
-            }
-            else
-            {
-                SubBars.Remove(progressBar);
-                return;
-            }
-        }
+    public void Write(string message) => _messageWriter.Write(message);
+
+    public void Write(string message, LogLevel logLevel) => _messageWriter.Write(message, logLevel);
+
+    public void UpdateBar()
+    {
+        Current++;
+        _messageWriter.UpdateProgressBar();
     }
 
-    public void Delete(IEnumerable<string> name)
+    public void UpdateBar(string msg)
     {
-        var enumerator = name.GetEnumerator();
-        enumerator.Reset();
-        if (enumerator.MoveNext() && enumerator.MoveNext())
-            Delete(enumerator);
+        Msg = msg;
+        UpdateBar();
+    }
+
+    public ProgressBar CreateSubProgressBar(string name, int max)
+    {
+        var progressBar = new ProgressBar(_messageWriter, name, max, DisposeSubBar);
+        SubBars.Add(progressBar);
+        return progressBar;
+    }
+
+    private void DisposeSubBar(ProgressBar progressBar)
+    {
+        SubBars.Remove(progressBar);
+        _messageWriter.UpdateProgressBar();
     }
 }

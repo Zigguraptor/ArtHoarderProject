@@ -1,10 +1,13 @@
-﻿namespace ArtHoarderArchiveService;
+﻿using ArtHoarderArchiveService.PipeCommunications;
+
+namespace ArtHoarderArchiveService;
 
 public interface IMessageWriter
 {
     public void Write(string message);
     public void Write(string message, LogLevel logLevel);
-    public void UpdateProgressBar(string[] path, string msg);
-    public void DeleteProgressBar(string[] path);
+    public ProgressBar CreateNewProgressBar(string name, int max);
+    public ProgressBar CreateNewProgressBar(string name, int max, string msg);
+    public void UpdateProgressBar();
     public void ClearProgressBars();
 }

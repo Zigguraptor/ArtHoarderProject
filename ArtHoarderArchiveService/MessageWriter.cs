@@ -30,27 +30,18 @@ public class MessageWriter : IMessageWriter
         _streamString.WriteString(LogCommand + logLevel + ' ' + message);
     }
 
-    public void UpdateProgressBar(string[] path, string msg)
+    public ProgressBar CreateNewProgressBar(string name, int max)
     {
-        _progressBar?.UpdateBar(path, msg);
-        UpdateProgressBar();
+        _progressBar = new ProgressBar(this, name, max, _ => ClearProgressBars());
+        return _progressBar;
     }
 
-    public void DeleteProgressBar(string[] path)
-    {
-        if (_progressBar == null) return;
-        if (path.Length <= 0) return;
-        if (_progressBar.Name != path[0]) return;
-        if (path.Length == 1)
-        {
-            _progressBar = null;
-        }
-        else
-        {
-            _progressBar.Delete(path);
-        }
 
+    public ProgressBar CreateNewProgressBar(string name, int max, string msg)
+    {
+        _progressBar = new ProgressBar(this, name, max, msg, _ => ClearProgressBars());
         UpdateProgressBar();
+        return _progressBar;
     }
 
     public void ClearProgressBars()
@@ -77,7 +68,7 @@ public class MessageWriter : IMessageWriter
     }
 
 
-    private void UpdateProgressBar()
+    public void UpdateProgressBar()
     {
         if (_progressBar != null)
         {
