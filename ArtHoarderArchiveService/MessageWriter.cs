@@ -4,7 +4,7 @@ namespace ArtHoarderArchiveService;
 
 public class MessageWriter : IMessageWriter
 {
-    private const string RewriteCommand = "#rewrite ";
+    private const string RewriteCommand = "#UpdateLine ";
     private readonly StreamString _streamString;
 
     public MessageWriter(StreamString streamString)
@@ -17,7 +17,7 @@ public class MessageWriter : IMessageWriter
         _streamString.WriteString(message);
     }
 
-    public void Rewrite(string line)
+    public void UpdateLine(string line)
     {
         _streamString.WriteString(RewriteCommand + line);
     }
