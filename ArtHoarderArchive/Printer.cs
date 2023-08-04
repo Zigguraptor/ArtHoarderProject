@@ -74,7 +74,7 @@ public static class Printer
         if (spaceCount > 0)
             loadingBar += new string(LoadingBarSpace, spaceCount);
 
-        Console.Write($"[{loadingBar}] {progressBar.Msg}");
+        Console.Write($"{progressBar.Name} [{loadingBar}] {progressBar.Msg}");
     }
 
 
