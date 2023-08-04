@@ -244,20 +244,33 @@ internal class ParserTypeW : Parser
 
     protected override List<Uri> GetSubmissionLinks(HtmlDocument profileDocument)
     {
-        var pages = GetGalleryPages(profileDocument);
-
         var uris = new List<Uri>();
-        foreach (var page in pages)
+        var galleryDocument = GetGalleryDocument(profileDocument);
+        if (galleryDocument == null) return uris;
+
+        do
         {
-            var nods = page.DocumentNode.SelectNodes(ParserTypeWSettings.XpathSubmissions);
+            var nods = galleryDocument!.DocumentNode.SelectNodes(ParserTypeWSettings.XpathSubmissions);
             if (nods == null)
             {
                 LogWarning("Submissions not found on one of the pages");
                 continue;
             }
 
-            uris.AddRange(nods.Select(node => new Uri("https://" + Host + node.Attributes.First().Value)));
-        }
+            foreach (var node in nods)
+            {
+                try
+                {
+                    //TODO extract attribute name
+                    uris.Add(new Uri("https://" + Host + node.Attributes.First().Value));
+                }
+                catch
+                {
+                    progressWriter.Write("Parsing error. Possibly an error in the diagram.(XpathSubmissions)",
+                        LogLevel.Error);
+                }
+            }
+        } while (TryGetNextGalleryPage(galleryDocument, out galleryDocument));
 
         return uris;
     }
@@ -367,22 +380,13 @@ internal class ParserTypeW : Parser
         return true;
     }
 
-    protected virtual List<HtmlDocument> GetGalleryPages(HtmlDocument profileDocument)
+    protected virtual HtmlDocument? GetGalleryDocument(HtmlDocument profileDocument)
     {
-        var pages = new List<HtmlDocument>();
-
         var uri = GetGalleryUri(profileDocument);
-        if (uri == null) return pages;
+        if (uri == null) return null;
 
         var doc = WebDownloader.GetHtml(uri);
-        if (doc == null) return pages;
-
-        pages.Add(doc);
-
-        while (TryGetNextGalleryPage(doc, out doc))
-            pages.Add(doc ?? throw new InvalidOperationException(ErrorMsg));
-
-        return pages;
+        return doc;
     }
 
     protected virtual Uri? GetGalleryUri(HtmlDocument profileDocument)
