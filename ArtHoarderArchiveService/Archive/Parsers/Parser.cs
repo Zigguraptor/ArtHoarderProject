@@ -16,34 +16,92 @@ internal abstract class Parser
         _parsHandler = parsHandler;
     }
 
-    public async Task<bool> ParsProfileGallery(Uri galleryUri, string dirName, CancellationToken cancellationToken)
+    public async Task LightUpdateGalleryAsync(
+        IProgressWriter progressWriter, Uri galleryUri, string dirName, CancellationToken cancellationToken)
     {
         var doc = await WebDownloader.GetHtmlAsync(galleryUri, cancellationToken).ConfigureAwait(false);
         if (doc == null)
         {
-            LogError("Profile not found");
-            // reporter.Report($"Error! Profile not found: {Host} {profileUri}");
-            return false;
+            var msg = $"Profile not found on uri: {galleryUri}";
+            LogError(msg);
+            progressWriter.Write(msg, LogLevel.Error);
+            return;
         }
 
-        // reporter.Report($"Parsing profile: {profileUri}");
         if (!_parsHandler.RegisterGalleryProfile(GetProfile(galleryUri, doc), dirName))
-            return false;
-
-        // reporter.Report($"Gallery analysis(May take a long time)... {Host} {TryGetUserName(profileUri)}");
-        var uris = GetSubmissionLinks(doc);
-        if (uris.Count > 0)
         {
-            // var subProgress = reporter.CreateSubProgress($"UpdateSubmissions {Host} {TryGetUserName(profileUri)}", uris.Length);
-            await UpdateSubmissionsAsync(uris, galleryUri, dirName, cancellationToken).ConfigureAwait(false);
+            progressWriter.Write($"Saving error. Changes aborted. {galleryUri}", LogLevel.Error);
+            return;
         }
 
-        return true;
+        progressWriter.Write($"Gallery analysis(May take a long time)... {galleryUri}");
+        var linksTuple = GetNewSubmissionLinks(progressWriter, doc, _parsHandler.GetLastSubmissionUri(galleryUri));
+        progressWriter.Write($"Successfully analyzed {galleryUri}");
+
+        var scheduledGalleryUpdateInfo = new ScheduledGalleryUpdateInfo
+        {
+            GalleryUri = galleryUri,
+            LastFullUpdate = _parsHandler.LastFullUpdate(galleryUri),
+            Host = galleryUri.Host,
+            FirstLoadedSubmissionUri = linksTuple.submissions[linksTuple.submissions.Count],
+            LastLoadedPage = linksTuple.lastPage,
+        };
+        _parsHandler.RegScheduledGalleryUpdateInfo(scheduledGalleryUpdateInfo);
+
+        if (linksTuple.submissions.Count > 0)
+        {
+            using var subBar = progressWriter.CreateSubProgressBar(galleryUri.ToString(), linksTuple.submissions.Count);
+            var lastSuccessfulSubmission =
+                await UpdateSubmissionsAsync(subBar, linksTuple.submissions, galleryUri, dirName, cancellationToken)
+                    .ConfigureAwait(false);
+
+            if (lastSuccessfulSubmission != null)
+                _parsHandler.UpdateLastSuccessfulSubmission(galleryUri, lastSuccessfulSubmission);
+        }
     }
 
-    private async Task UpdateSubmissionsAsync(List<Uri> uris, Uri sourceGallery, string dirName,
-        CancellationToken cancellationToken)
+    public async Task ScheduledUpdateGalleryAsync(IProgressWriter progressWriter,
+        ScheduledGalleryUpdateInfo scheduledGalleryUpdateInfo, CancellationToken cancellationToken,
+        string directoryName)
     {
+        if (scheduledGalleryUpdateInfo.LastLoadedPage != null)
+        {
+            progressWriter.Write($"Gallery analysis(May take a long time)... {scheduledGalleryUpdateInfo.GalleryUri}");
+            var uris = GetOldSubmissionLinks(progressWriter, scheduledGalleryUpdateInfo);
+            progressWriter.Write($"Successfully analyzed {scheduledGalleryUpdateInfo.GalleryUri}");
+
+            using var subBar =
+                progressWriter.CreateSubProgressBar(scheduledGalleryUpdateInfo.GalleryUri.ToString(), uris.Count);
+            await UpdateSubmissionsAsync(subBar, uris, scheduledGalleryUpdateInfo.GalleryUri, directoryName,
+                cancellationToken);
+        }
+        else
+        {
+            var doc = await WebDownloader.GetHtmlAsync(scheduledGalleryUpdateInfo.GalleryUri, cancellationToken)
+                .ConfigureAwait(false);
+            if (doc == null)
+            {
+                var msg = $"Profile not found on uri: {scheduledGalleryUpdateInfo.GalleryUri}";
+                LogError(msg);
+                progressWriter.Write(msg, LogLevel.Error);
+                return;
+            }
+
+            progressWriter.Write($"Gallery analysis(May take a long time)... {scheduledGalleryUpdateInfo.GalleryUri}");
+            var uris = GetAllSubmissionLinks(progressWriter, doc);
+            progressWriter.Write($"Successfully analyzed {scheduledGalleryUpdateInfo.GalleryUri}");
+
+            using var subBar =
+                progressWriter.CreateSubProgressBar(scheduledGalleryUpdateInfo.GalleryUri.ToString(), uris.Count);
+            await UpdateSubmissionsAsync(subBar, uris, scheduledGalleryUpdateInfo.GalleryUri, directoryName,
+                cancellationToken);
+        }
+    }
+
+    private async Task<Uri?> UpdateSubmissionsAsync(IProgressWriter progressWriter, List<Uri> uris,
+        Uri sourceGalleryUri, string dirName, CancellationToken cancellationToken)
+    {
+        Uri? lastSuccessfulSubmission = null; //TODO
         var channel = Channel.CreateBounded<(HtmlDocument htmlDocument, Uri uri)>(new BoundedChannelOptions(uris.Count)
         {
             SingleReader = false,
@@ -54,13 +112,15 @@ internal abstract class Parser
         var consumingTask = ConsumeAsync(channel.Reader);
         await Task.WhenAll(producingTask, consumingTask);
 
+        return lastSuccessfulSubmission;
+
         async Task ConsumeAsync(ChannelReader<(HtmlDocument htmlDocument, Uri uri)> reader)
         {
             await foreach (var tuple in reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                _parsHandler.RegisterSubmission(GetSubmission(tuple.htmlDocument, tuple.uri, sourceGallery),
+                progressWriter.UpdateBar(tuple.uri.ToString());
+                _parsHandler.RegisterSubmission(GetSubmission(tuple.htmlDocument, tuple.uri, sourceGalleryUri),
                     dirName);
-                // Console.WriteLine($"Обработан: {tuple.uri}");   
             }
         }
 
@@ -68,13 +128,13 @@ internal abstract class Parser
         {
             try
             {
-                foreach (var uri in uris)
+                for (var i = uris.Count - 1; i >= 0; i--)
                 {
+                    var uri = uris[i];
                     if (cancellationToken.IsCancellationRequested) break;
 
                     var submissionDocument = await WebDownloader.GetHtmlAsync(uri, cancellationToken);
-                    // subProgressInfo.Report($"{uri} Loaded");
-                    // subProgressInfo.Progress();
+                    progressWriter.Write($"{uri} Loaded");
 
                     if (submissionDocument != null)
                     {
@@ -82,12 +142,16 @@ internal abstract class Parser
                     }
                     else
                     {
-                        LogError($"\"{uri}\" Failed to load submission html doc. Parsing of this page is canceled.");
+                        var msg = $"\"{uri}\" Failed to load submission html doc. Parsing of this page is canceled.";
+                        progressWriter.Write(msg, LogLevel.Error);
+                        LogError(msg);
+                        progressWriter.UpdateBar();
                     }
                 }
             }
             catch (Exception e)
             {
+                //TODO progressWriter
                 var ex = e.ToString();
                 Console.WriteLine(ex);
                 LogError(ex);
@@ -102,7 +166,14 @@ internal abstract class Parser
     protected abstract GalleryProfile GetProfile(Uri profileUri, HtmlDocument profileDocument);
     protected abstract ParsedSubmission GetSubmission(HtmlDocument htmlDocument, Uri uri, Uri sourceGallery);
 
-    protected abstract List<Uri> GetSubmissionLinks(HtmlDocument profileDocument);
+    protected abstract (List<Uri> submissions, string lastPage) GetNewSubmissionLinks(
+        IProgressWriter progressWriter, HtmlDocument profileDocument, Uri? lastLoadedSubmissionUri);
+
+    protected abstract List<Uri> GetAllSubmissionLinks(IProgressWriter progressWriter, HtmlDocument profileDocument);
+
+    protected abstract List<Uri> GetOldSubmissionLinks(IProgressWriter progressWriter,
+        ScheduledGalleryUpdateInfo scheduledGalleryUpdateInfo);
+
     public abstract Task<List<Uri>> TryGetSubscriptionsAsync(Uri uri, CancellationToken cancellationToken);
 
     public abstract string? TryGetUserName(Uri uri);

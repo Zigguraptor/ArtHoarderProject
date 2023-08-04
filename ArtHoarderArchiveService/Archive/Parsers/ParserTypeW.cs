@@ -242,7 +242,123 @@ internal class ParserTypeW : Parser
         return null;
     }
 
-    protected override List<Uri> GetSubmissionLinks(HtmlDocument profileDocument)
+    protected override (List<Uri> submissions, string lastPage) GetNewSubmissionLinks(
+        IProgressWriter progressWriter, HtmlDocument profileDocument, Uri? lastLoadedSubmissionUri)
+    {
+        var page = GetGalleryDocument(profileDocument);
+        if (page == null)
+        {
+            const string msg = "Gallery page not found. Possibly an error in \"XpathGalleryUri\"";
+            progressWriter.Write(msg);
+            //TODO log
+            return (new List<Uri>(0), "");
+        }
+
+        var uris = new List<Uri>();
+        HtmlDocument lastPage;
+        do
+        {
+            lastPage = page!;
+            var nods = page!.DocumentNode.SelectNodes(ParserTypeWSettings.XpathSubmissions);
+            if (nods == null)
+            {
+                LogWarning("Submissions not found on one of the pages");
+                continue;
+            }
+
+            foreach (var node in nods)
+            {
+                try
+                {
+                    //TODO extract attribute name
+                    uris.Add(new Uri("https://" + Host + node.Attributes.First().Value));
+                }
+                catch
+                {
+                    progressWriter.Write("Parsing error. Possibly an error in \"XpathSubmissions\"",
+                        LogLevel.Error);
+                }
+            }
+        } while (TryGetNextGalleryPage(page, out page));
+
+        return (uris, lastPage.Text);
+    }
+
+    protected override List<Uri> GetOldSubmissionLinks(IProgressWriter progressWriter,
+        ScheduledGalleryUpdateInfo scheduledGalleryUpdateInfo)
+    {
+        if (scheduledGalleryUpdateInfo.LastLoadedPage == null ||
+            scheduledGalleryUpdateInfo.FirstLoadedSubmissionUri == null)
+        {
+            var profile = WebDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri);
+            return GetAllSubmissionLinks(progressWriter, profile);
+        }
+
+        var page = new HtmlDocument();
+        page.LoadHtml(scheduledGalleryUpdateInfo.LastLoadedPage);
+        var nods = page.DocumentNode.SelectNodes(ParserTypeWSettings.XpathSubmissions);
+        if (nods == null)
+        {
+            const string msg = "Submissions not found on one of the pages";
+            progressWriter.Write(msg, LogLevel.Error);
+            LogWarning(msg);
+            var profile = WebDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri);
+            return GetAllSubmissionLinks(progressWriter, profile);
+        }
+
+        var uris = new List<Uri>();
+        var firstLoadedSubmissionUri = scheduledGalleryUpdateInfo.FirstLoadedSubmissionUri.ToString();
+        var firstOrDefault = nods.FirstOrDefault(n => n.Attributes.First().Value == firstLoadedSubmissionUri);
+        if (firstOrDefault == null)
+        {
+            progressWriter.Write("Cached submission link node not found. Reloading Gallery.", LogLevel.Warning);
+            var profile = WebDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri);
+            return GetAllSubmissionLinks(progressWriter, profile);
+        }
+
+        var i = nods.IndexOf(firstOrDefault);
+        for (; i < nods.Count; i++)
+        {
+            try
+            {
+                //TODO extract attribute name
+                uris.Add(new Uri("https://" + Host + nods[i].Attributes.First().Value));
+            }
+            catch
+            {
+                progressWriter.Write("Parsing error. Possibly an error in the diagram.(XpathSubmissions)",
+                    LogLevel.Error);
+            }
+        }
+
+        while (TryGetNextGalleryPage(page, out page))
+        {
+            nods = page!.DocumentNode.SelectNodes(ParserTypeWSettings.XpathSubmissions);
+            if (nods == null)
+            {
+                const string msg = "Submissions not found on one of the pages";
+                progressWriter.Write(msg, LogLevel.Warning);
+                LogWarning(msg);
+                continue;
+            }
+
+            try
+            {
+                //TODO extract attribute name
+                uris.Add(new Uri("https://" + Host + nods[i].Attributes.First().Value));
+            }
+            catch
+            {
+                progressWriter.Write("Parsing error. Possibly an error in the diagram.(XpathSubmissions)",
+                    LogLevel.Error);
+            }
+        }
+
+        return uris;
+    }
+
+
+    protected override List<Uri> GetAllSubmissionLinks(IProgressWriter progressWriter, HtmlDocument profileDocument)
     {
         var uris = new List<Uri>();
         var galleryDocument = GetGalleryDocument(profileDocument);
@@ -266,7 +382,7 @@ internal class ParserTypeW : Parser
                 }
                 catch
                 {
-                    progressWriter.Write("Parsing error. Possibly an error in the diagram.(XpathSubmissions)",
+                    progressWriter.Write("Parsing error. Possibly an error in \"XpathSubmissions\"",
                         LogLevel.Error);
                 }
             }

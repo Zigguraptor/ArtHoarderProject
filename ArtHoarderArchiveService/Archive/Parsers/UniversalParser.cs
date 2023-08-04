@@ -1,4 +1,6 @@
-﻿namespace ArtHoarderArchiveService.Archive.Parsers;
+﻿using ArtHoarderArchiveService.Archive.DAL.Entities;
+
+namespace ArtHoarderArchiveService.Archive.Parsers;
 
 public sealed class UniversalParser // LordParser
 {
@@ -11,12 +13,19 @@ public sealed class UniversalParser // LordParser
         _parsHandler = parsHandler;
     }
 
-    internal Task<bool> UpdateGallery(Uri galleryUri, string directoryName, CancellationToken cancellationToken)
+    internal Task LightUpdateGalleryAsync(
+        IProgressWriter progressWriter, Uri galleryUri, string directoryName, CancellationToken cancellationToken)
     {
         var parser = GetParser(galleryUri);
-        return parser?.ParsProfileGallery(galleryUri, directoryName, cancellationToken) ?? Task.FromResult(false);
-    }
+        if (parser == null)
+        {
+            progressWriter.Write($"Not found parser for {galleryUri.Host}", LogLevel.Error);
+            return Task.CompletedTask;
+        }
 
+        return parser.LightUpdateGalleryAsync(progressWriter, galleryUri, directoryName, cancellationToken);
+    }
+    
     internal Task<List<Uri>>? GetSubscriptions(Uri uri, CancellationToken cancellationToken)
     {
         return GetParser(uri)?.TryGetSubscriptionsAsync(uri, cancellationToken);
@@ -44,5 +53,20 @@ public sealed class UniversalParser // LordParser
 
         _parsers.Add(uri.Host, parser);
         return parser;
+    }
+
+    public Task ScheduledUpdateGalleryAsync(IProgressWriter progressWriter,
+        ScheduledGalleryUpdateInfo scheduledGalleryUpdateInfo, CancellationToken cancellationToken,
+        string directoryName)
+    {
+        var parser = GetParser(scheduledGalleryUpdateInfo.GalleryUri);
+        if (parser == null)
+        {
+            progressWriter.Write($"Not found parser for {scheduledGalleryUpdateInfo.Host}", LogLevel.Error);
+            return Task.CompletedTask;
+        }
+
+        return parser.ScheduledUpdateGalleryAsync(progressWriter, scheduledGalleryUpdateInfo, cancellationToken,
+            directoryName);
     }
 }

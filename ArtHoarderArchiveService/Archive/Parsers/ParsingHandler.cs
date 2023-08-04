@@ -15,6 +15,12 @@ internal class ParsingHandler : IParsHandler
         Logger = logger;
     }
 
+    public Uri? GetLastSubmissionUri(Uri galleryUri)
+    {
+        using var context = new MainDbContext(_archiveContext.WorkDirectory);
+        return context.GalleryProfiles.Find(galleryUri)?.LastSubmission;
+    }
+
     public virtual bool RegisterGalleryProfile(GalleryProfile galleryProfile, string? saveFolder)
     {
         using var context = new MainDbContext(_archiveContext.WorkDirectory);
@@ -82,6 +88,30 @@ internal class ParsingHandler : IParsHandler
                     local.FileUri = fileUri;
             }
         }
+    }
+
+    public DateTime? LastFullUpdate(Uri galleryUri)
+    {
+        using var context = new MainDbContext(_archiveContext.WorkDirectory);
+        return context.GalleryProfiles.Find(galleryUri)?.LastFullUpdateTime;
+    }
+
+    public void UpdateLastSuccessfulSubmission(Uri galleryUri, Uri successfulSubmission)
+    {
+        using var context = new MainDbContext(_archiveContext.WorkDirectory);
+        var galleryProfile = context.GalleryProfiles.Find(galleryUri);
+        if (galleryProfile == null) throw new Exception("Так быть не должно."); //TODO
+
+        galleryProfile.LastSubmission = successfulSubmission;
+        context.Update(galleryProfile);
+        TrySaveChanges(context);
+    }
+
+    public void RegScheduledGalleryUpdateInfo(ScheduledGalleryUpdateInfo scheduledGalleryUpdateInfo)
+    {
+        using var context = new CacheDbContext(_archiveContext.WorkDirectory);
+        context.Update(scheduledGalleryUpdateInfo);
+        TrySaveChanges(context);
     }
 
     private bool TrySaveChanges(DbContext dbContext)

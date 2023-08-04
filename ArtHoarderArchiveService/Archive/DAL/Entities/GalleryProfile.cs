@@ -6,7 +6,7 @@ namespace ArtHoarderArchiveService.Archive.DAL.Entities;
 public class GalleryProfile
 {
     [Key] public Uri Uri { get; set; } = null!;
-    public string Resource { get; set; } = null!;
+    public string ResourceHost { get; set; } = null!;
 
     public string OwnerName { get; set; } = null!;
     [ForeignKey("OwnerName")] public User Owner { get; set; } = null!; //  foreign key. User.Name
@@ -20,8 +20,11 @@ public class GalleryProfile
 
     [ForeignKey("IconFileGuid")] public FileMetaInfo? IconFile { get; set; } = null!; //  foreign key. File.Guid
 
+    public Uri? LastSubmission { get; set; }
     public DateTime FirstSaveTime { get; set; }
-    public DateTime LastUpdateTime { get; set; }
+    public DateTime LastUpdateTime { get; set; } //any field updated
+    public DateTime LastNewUpdateTime { get; set; } // updated all new posts and profile info
+    public DateTime LastFullUpdateTime { get; set; } // update all info
 
     public void Update(GalleryProfile newVersion)
     {

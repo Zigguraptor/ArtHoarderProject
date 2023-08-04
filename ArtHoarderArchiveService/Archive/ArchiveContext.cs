@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ArtHoarderArchiveService.Archive;
 
-public class ArchiveContext : IDisposable
+public sealed class ArchiveContext : IDisposable
 {
     private const int FileNameLimit = 100;
     private readonly FileStream _mainFile;
@@ -49,46 +49,137 @@ public class ArchiveContext : IDisposable
 
     #region Update
 
-    public Task UpdateAllGalleriesAsync()
+    public async Task UpdateAllGalleriesAsync(IMessageWriter statusWriter, bool oldIncluded,
+        CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        statusWriter.Write("Analyze data base...");
+        await using var context = new MainDbContext(WorkDirectory);
+        var groups = context
+            .GalleryProfiles
+            .OrderBy(p => p.LastNewUpdateTime)
+            .GroupBy(p => p.ResourceHost);
+
+        if (oldIncluded)
+        {
+            var progressBar = statusWriter.CreateNewProgressBar("", groups.Count(),
+                "All galleries update stage 1/2(newest)");
+
+            await Parallel.ForEachAsync(groups, cancellationToken,
+                (group, _) => LightUpdateGroupAsync(progressBar, group, cancellationToken)).ConfigureAwait(false);
+
+            progressBar = statusWriter.CreateNewProgressBar("", groups.Count(),
+                "All galleries update stage 2/2(old)");
+
+            await context.DisposeAsync();
+
+            await using var cache = new CacheDbContext(WorkDirectory);
+            var scheduledUpdateGalleries = cache
+                .ScheduledUpdateGalleries
+                .OrderBy(i => i.LastFullUpdate)
+                .GroupBy(i => i.Host);
+
+            await Parallel.ForEachAsync(scheduledUpdateGalleries, cancellationToken,
+                (infoGroup, _) => ScheduledUpdateGroupAsync(progressBar, infoGroup, cancellationToken));
+        }
+        else
+        {
+            var progressBar = statusWriter.CreateNewProgressBar("", groups.Count(),
+                "All galleries update. Only new submissions.");
+
+            await Parallel.ForEachAsync(groups, cancellationToken,
+                (group, _) => LightUpdateGroupAsync(progressBar, group, cancellationToken)).ConfigureAwait(false);
+        }
     }
 
-    public async Task<bool> UpdateUserAsync(string userName, CancellationToken cancellationToken)
+    private async ValueTask LightUpdateGroupAsync(IProgressWriter progressWriter, IEnumerable<GalleryProfile> group,
+        CancellationToken cancellationToken)
+    {
+        foreach (var gallery in group)
+        {
+            await LightUpdateGalleryAsync(progressWriter, gallery.Uri, cancellationToken);
+            progressWriter.UpdateBar();
+        }
+    }
+
+    private async ValueTask ScheduledUpdateGroupAsync(IProgressWriter progressWriter,
+        IEnumerable<ScheduledGalleryUpdateInfo> group, CancellationToken cancellationToken)
+    {
+        foreach (var info in group)
+        {
+            await ScheduledUpdateGalleryAsync(progressWriter, info, cancellationToken);
+            progressWriter.UpdateBar();
+        }
+    }
+
+
+    public async Task LightUpdateGalleryAsync(IProgressWriter progressWriter, Uri galleryUri,
+        CancellationToken cancellationToken,
+        string? directoryName = null)
     {
         using var context = new MainDbContext(WorkDirectory);
-        var galleryProfiles = context.GalleryProfiles.Where(g => g.OwnerName == userName).ToList();
-        if (galleryProfiles.Count == 0) return false;
+        var galleryProfile =
+            await context.GalleryProfiles.FirstOrDefaultAsync(g => g.Uri == galleryUri,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+        if (galleryProfile is null)
+        {
+            progressWriter.Write($"{galleryUri} not found in db.");
+            return;
+        }
 
-        var tasks = galleryProfiles.Select(profile =>
-            UpdateGalleryAsync(profile.Uri, cancellationToken));
-        await Task.WhenAll(tasks);
+        directoryName ??= galleryProfile.OwnerName;
+
+        await _universalParser
+            .LightUpdateGalleryAsync(progressWriter, galleryUri, directoryName, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public Task ScheduledUpdateGalleryAsync(IProgressWriter statusWriter,
+        ScheduledGalleryUpdateInfo scheduledGalleryUpdateInfo, CancellationToken cancellationToken,
+        string? directoryName = null)
+    {
+        directoryName ??= GalleryAnalyzer.TryGetUserName(scheduledGalleryUpdateInfo.GalleryUri);
+        directoryName ??= "Other"; //TODO literal
+
+        return _universalParser.ScheduledUpdateGalleryAsync(statusWriter, scheduledGalleryUpdateInfo, cancellationToken,
+            directoryName);
+    }
+
+    public async Task<bool> UpdateUserAsync(string userName, bool oldIncluded, CancellationToken cancellationToken)
+    {
+        // await using var context = new MainDbContext(WorkDirectory);
+        // var galleryProfiles = context.GalleryProfiles.Where(g => g.OwnerName == userName).ToList();
+        // if (galleryProfiles.Count == 0) return false;
+        //
+        // var tasks = galleryProfiles.Select(profile =>
+        //     UpdateGalleryAsync(profile.Uri, cancellationToken));
+        // await Task.WhenAll(tasks);
 
         return true;
     }
 
-    public async Task UpdateGalleriesAsync(ICollection<ProfileInfo> galleries, CancellationToken cancellationToken)
+    public async Task UpdateGalleriesAsync(ICollection<ProfileInfo> galleries, bool oldIncluded,
+        CancellationToken cancellationToken)
     {
-        // reporter.SetProgressStage("Galleries Updating");
-        // reporter.SetProgressBar(0, galleries.Length);
-
-        foreach (var gallery in galleries)
-        {
-            // reporter.Progress();
-            await UpdateGalleryAsync(gallery.Uri, cancellationToken).ConfigureAwait(false);
-        }
+        // // reporter.SetProgressStage("Galleries Updating");
+        // // reporter.SetProgressBar(0, galleries.Length);
+        //
+        // foreach (var gallery in galleries)
+        // {
+        //     // reporter.Progress();
+        //     await UpdateGalleryAsync(gallery.Uri, cancellationToken).ConfigureAwait(false);
+        // }
     }
 
-    public async Task<bool> UpdateGalleryAsync(Uri galleryUri, CancellationToken cancellationToken,
+    public async Task UpdateGalleryAsync(Uri galleryUri, CancellationToken cancellationToken,
         string? directoryName = null)
     {
-        using var context = new MainDbContext(WorkDirectory);
-        var galleryProfile = context.GalleryProfiles.FirstOrDefault(g => g.Uri == galleryUri);
-        if (galleryProfile is null)
-            return false;
-
-        directoryName ??= galleryProfile.OwnerName;
-        return await _universalParser.UpdateGallery(galleryUri, directoryName, cancellationToken).ConfigureAwait(false);
+        // using var context = new MainDbContext(WorkDirectory);
+        // var galleryProfile = context.GalleryProfiles.FirstOrDefault(g => g.Uri == galleryUri);
+        // if (galleryProfile is null)
+        //     return false;
+        //
+        // directoryName ??= galleryProfile.OwnerName;
+        // return await _universalParser.UpdateGallery(galleryUri, directoryName, cancellationToken).ConfigureAwait(false);
     }
 
     #endregion
@@ -322,7 +413,7 @@ public class ArchiveContext : IDisposable
         context.GalleryProfiles.Add(new GalleryProfile
         {
             Uri = uri,
-            Resource = uri.Host,
+            ResourceHost = uri.Host,
             Owner = owner,
             FirstSaveTime = time,
             LastUpdateTime = time
@@ -362,7 +453,7 @@ public class ArchiveContext : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing)
+    private void Dispose(bool disposing)
     {
         if (disposing)
         {
