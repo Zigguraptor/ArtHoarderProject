@@ -5,5 +5,5 @@ namespace ArtHoarderArchiveService.PipeCommunications.Verbs;
 public abstract class BaseVerb
 {
     public abstract bool Validate(out List<string>? errors);
-    public abstract void Invoke(IMessageWriter statusWriter, string path, CancellationToken cancellationToken);
+    public abstract Task Invoke(IMessageWriter messageWriter, string path, CancellationToken cancellationToken);
 }

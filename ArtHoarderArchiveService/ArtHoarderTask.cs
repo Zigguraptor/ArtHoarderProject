@@ -7,12 +7,10 @@ public class ArtHoarderTask
     private readonly string _path;
     private readonly BaseVerb _verb;
     private readonly IMessageWriter _statusWriter;
-    private Action<ArtHoarderTask>? _endCallback;
+    private CancellationTokenSource? _tokenSource;
 
     public readonly Guid TaskGuide = Guid.NewGuid();
     public readonly DateTime CreationDateTime = Time.NowUtcDataTime();
-
-    private CancellationToken _cancellationToken;
     public TaskStatus TaskStatus { get; private set; } = TaskStatus.Created;
     public DateTime ExecutionDateTime { get; private set; }
 
@@ -25,23 +23,21 @@ public class ArtHoarderTask
 
     public void Cancel()
     {
-        _cancellationToken = new CancellationToken(true);
-        //If need cancellation delegate. Then you need to add it here.
-        //And register Cansel() in CancellationToken in Start()
+        _tokenSource?.Cancel();
+        _tokenSource = null;
     }
 
-    public void Start(Action<ArtHoarderTask> endCallback)
+    public Task Start()
     {
-        Start(endCallback, new CancellationToken(false));
+        _tokenSource?.Cancel();
+        _tokenSource = new CancellationTokenSource();
+        return Start(_tokenSource.Token);
     }
 
-    public void Start(Action<ArtHoarderTask> endCallback, CancellationToken cancellationToken)
+    private async Task Start(CancellationToken cancellationToken)
     {
-        _endCallback = endCallback;
-        _verb.Invoke(_statusWriter, _path, cancellationToken);
-
+        await _verb.Invoke(_statusWriter, _path, cancellationToken).ConfigureAwait(false);
         EndTask();
-        endCallback.Invoke(this);
     }
 
     private void WriteStatus(string message)
