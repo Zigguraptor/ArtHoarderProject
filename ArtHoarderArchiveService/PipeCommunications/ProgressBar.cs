@@ -1,14 +1,19 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 
 namespace ArtHoarderArchiveService.PipeCommunications;
 
+//Они используются. Для сериализации.
+[SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
+[SuppressMessage("ReSharper", "CollectionNeverQueried.Global")]
 public sealed class ProgressBar : IProgressWriter
 {
+    [JsonIgnore] private readonly object _syncRoot = new();
     [JsonIgnore] private readonly IMessageWriter _messageWriter;
     [JsonIgnore] private readonly Action<ProgressBar> _dispose;
     public string Name { get; }
     public int Max { get; }
-    public int Current { get; set; } = 0;
+    public int Current { get; set; }
     public string Msg { get; set; } = string.Empty;
     public List<ProgressBar> SubBars { get; } = new();
 
@@ -34,26 +39,34 @@ public sealed class ProgressBar : IProgressWriter
 
     public void UpdateBar()
     {
-        Current++;
+        lock (_syncRoot)
+            Current++;
         _messageWriter.UpdateProgressBar();
     }
 
     public void UpdateBar(string msg)
     {
-        Msg = msg;
-        UpdateBar();
+        lock (_syncRoot)
+        {
+            Msg = msg;
+            Current++;
+        }
+
+        _messageWriter.UpdateProgressBar();
     }
 
     public ProgressBar CreateSubProgressBar(string name, int max)
     {
         var progressBar = new ProgressBar(_messageWriter, name, max, DisposeSubBar);
-        SubBars.Add(progressBar);
+        lock (_syncRoot)
+            SubBars.Add(progressBar);
         return progressBar;
     }
 
     private void DisposeSubBar(ProgressBar progressBar)
     {
-        SubBars.Remove(progressBar);
+        lock (_syncRoot)
+            SubBars.Remove(progressBar);
         _messageWriter.UpdateProgressBar();
     }
 }

@@ -1,29 +1,37 @@
 ﻿using System.Text;
 using System.Text.Json;
+using System.Timers;
 using ArtHoarderArchiveService.PipeCommunications;
+using Timer = System.Timers.Timer;
 
 namespace ArtHoarderArchiveService;
 
 public class MessageWriter : IMessageWriter
 {
-    public const char Separator = ' ';
-    public const char Insulator = '\"';
+    private const char Separator = ' ';
+    private const char Insulator = '\"';
     private const string UpdatePbCommand = "#Update ";
     private const string LogCommand = "#Log ";
 
+    private readonly object _syncRoot = new();
+    private readonly Timer _updateProgressBarLimiter;
     private readonly StreamString _streamString;
-    private ProgressBar? _progressBar = null;
+
+    private bool _upgradePlanned;
+    private ProgressBar? _progressBar;
 
     public MessageWriter(StreamString streamString)
     {
         _streamString = streamString;
+        _updateProgressBarLimiter = new Timer(250);
+        _updateProgressBarLimiter.AutoReset = false;
+        _updateProgressBarLimiter.Elapsed += SendProgressBars;
     }
 
     public void Write(string message)
     {
         _streamString.WriteString('/' + message);
     }
-
 
     public void Write(string message, LogLevel logLevel)
     {
@@ -33,9 +41,9 @@ public class MessageWriter : IMessageWriter
     public ProgressBar CreateNewProgressBar(string name, int max)
     {
         _progressBar = new ProgressBar(this, name, max, _ => ClearProgressBars());
+        UpdateProgressBar();
         return _progressBar;
     }
-
 
     public ProgressBar CreateNewProgressBar(string name, int max, string msg)
     {
@@ -48,6 +56,29 @@ public class MessageWriter : IMessageWriter
     {
         _progressBar = null;
         UpdateProgressBar();
+    }
+
+    public void UpdateProgressBar() //TODO test it
+    {
+        if (_upgradePlanned) return;
+        lock (_syncRoot)
+        {
+            if (_upgradePlanned) return;
+            _upgradePlanned = true;
+            _updateProgressBarLimiter.Start();
+        }
+    }
+
+    private void SendProgressBars(object? sender, ElapsedEventArgs elapsedEventArgs)
+    {
+        if (_progressBar != null)
+        {
+            var progressBar = JsonSerializer.Serialize(_progressBar);
+            _streamString.WriteString(UpdatePbCommand + progressBar);
+            return;
+        }
+
+        _streamString.WriteString(UpdatePbCommand);
     }
 
     private void Write(string[] messages)
@@ -65,19 +96,6 @@ public class MessageWriter : IMessageWriter
         }
 
         _streamString.WriteString(sb.ToString());
-    }
-
-
-    public void UpdateProgressBar()
-    {
-        if (_progressBar != null)
-        {
-            var progressBar = JsonSerializer.Serialize(_progressBar);
-            _streamString.WriteString(UpdatePbCommand + progressBar);
-            return;
-        }
-
-        _streamString.WriteString(UpdatePbCommand);
     }
 
     private static string Escape(string s)
