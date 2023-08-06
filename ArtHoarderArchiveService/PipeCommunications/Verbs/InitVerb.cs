@@ -16,7 +16,7 @@ public class InitVerb : BaseVerb
         return true;
     }
 
-    public override Task Invoke(IMessageWriter messageWriter, string path, CancellationToken cancellationToken)
+    public override void Invoke(IMessageWriter messageWriter, string path, CancellationToken cancellationToken)
     {
         if (Path != null)
             path = Path;
@@ -32,6 +32,5 @@ public class InitVerb : BaseVerb
             default:
                 throw new ArgumentOutOfRangeException();
         }
-         return Task.CompletedTask;
     }
 }

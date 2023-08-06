@@ -57,13 +57,12 @@ public class AddVerb : BaseVerb
         return true;
     }
 
-    public override Task Invoke(IMessageWriter messageWriter, string path, CancellationToken cancellationToken)
+    public override void Invoke(IMessageWriter messageWriter, string path, CancellationToken cancellationToken)
     {
         if (UserNames != null)
             AddUsers(messageWriter, path);
         else
             AddGalleries(messageWriter, path);
-        return Task.CompletedTask;
     }
 
     private void AddUsers(IMessageWriter statusWriter, string path)

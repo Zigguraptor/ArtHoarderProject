@@ -26,18 +26,13 @@ public class NamedPipeCommunicator : BackgroundService, INamedPipeCommunicator
             await serverStream.WaitForConnectionAsync(cancellationToken);
             var streamString = new StreamString(serverStream);
             if (InitConnection(streamString))
-            {
-                if (TryGetTaskFromPipe(streamString, out var task))
-                {
-                    _taskManager.EnqueueTask(task!);
-                }
-            }
+                RegTaskFromPipe(streamString);
 
             serverStream.Disconnect();
         }
     }
 
-    private bool InitConnection(StreamString streamString)
+    private static bool InitConnection(StreamString streamString)
     {
         try
         {
@@ -52,7 +47,7 @@ public class NamedPipeCommunicator : BackgroundService, INamedPipeCommunicator
         return true;
     }
 
-    private bool TryGetTaskFromPipe(StreamString streamString, out ArtHoarderTask? task)
+    private void RegTaskFromPipe(StreamString streamString)
     {
         try
         {
@@ -60,28 +55,31 @@ public class NamedPipeCommunicator : BackgroundService, INamedPipeCommunicator
             if (command != null)
             {
                 var parsedTuple = _commandsParser.ParsCommand(command);
-                var artHoarderTask =
-                    new ArtHoarderTask(parsedTuple.path, parsedTuple.verb, new MessageWriter(streamString));
-                if (artHoarderTask.TaskStatus == TaskStatus.Broken)
+
+                if (parsedTuple.verb.Validate(out var errors))
                 {
-                    task = null;
-                    return false;
+                    foreach (var error in errors!)
+                        streamString.WriteString(error);
+                    return;
                 }
 
-                task = artHoarderTask;
-                return true;
-            }
-            else
-            {
-                task = null;
-                return false;
+                var tokenSource = new CancellationTokenSource();
+                var task = ArtHoarderTaskFactory.Create(parsedTuple.path, parsedTuple.verb, streamString,
+                    tokenSource.Token);
+
+                if (parsedTuple.verb.IsParallel)
+                {
+                    _taskManager.StartParallelTask(task, tokenSource);
+                }
+                else
+                {
+                    _taskManager.EnqueueTask(task, tokenSource);
+                }
             }
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
-            task = null;
-            return false;
         }
     }
 

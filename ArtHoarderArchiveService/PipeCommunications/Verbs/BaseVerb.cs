@@ -8,5 +8,5 @@ public abstract class BaseVerb
     public bool IsParallel { get; set; }
 
     public abstract bool Validate(out List<string>? errors);
-    public abstract Task Invoke(IMessageWriter messageWriter, string path, CancellationToken cancellationToken);
+    public abstract void Invoke(IMessageWriter messageWriter, string path, CancellationToken cancellationToken);
 }

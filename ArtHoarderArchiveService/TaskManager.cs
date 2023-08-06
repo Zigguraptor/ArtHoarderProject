@@ -3,56 +3,59 @@ namespace ArtHoarderArchiveService
     public class TaskManager : ITaskManager
     {
         private readonly ILogger<TaskManager> _logger;
-        private readonly List<ArtHoarderTask> _runningTasks = new(8);
-        private readonly object _runningTasksSyncRoot = new();
-        private readonly Queue<ArtHoarderTask> _tasksQueue = new(8);
-        private readonly object _tasksQueueSyncRoot = new();
+
+
+        private readonly object _syncRoot = new();
+        private readonly SortedDictionary<Task, CancellationTokenSource> _runningTasks = new();
+        private readonly Queue<(Task task, CancellationTokenSource tokenSource)> _tasksQueue = new(8);
 
         public TaskManager(ILogger<TaskManager> logger)
         {
             _logger = logger;
         }
 
-        public void StartParallelTask(ArtHoarderTask artHoarderTask)
+        public void StartParallelTask(Task task, CancellationTokenSource tokenSource)
         {
-            artHoarderTask.Start().ContinueWith(_ => FinalizeTask(artHoarderTask)).ConfigureAwait(false);
-            lock (_runningTasksSyncRoot)
+            lock (_syncRoot)
+                RunTask(task, tokenSource);
+        }
+
+        public void EnqueueTask(Task task, CancellationTokenSource tokenSource)
+        {
+            lock (_syncRoot)
             {
-                _runningTasks.Add(artHoarderTask);
+                if (_tasksQueue.Count > 0)
+                {
+                    _tasksQueue.Enqueue((task, tokenSource));
+                    return;
+                }
+
+                if (_runningTasks.Count > 0)
+                {
+                    _tasksQueue.Enqueue((task, tokenSource));
+                    return;
+                }
+
+                RunTask(task, tokenSource);
             }
         }
 
-        public void EnqueueTask(ArtHoarderTask artHoarderTask)
+        private void RunTask(Task task, CancellationTokenSource tokenSource)
         {
-            lock (_tasksQueueSyncRoot)
-                _tasksQueue.Enqueue(artHoarderTask);
-            UpdateQueueStatus();
+            _runningTasks.Add(task, tokenSource);
+            task.ContinueWith(FinalizeTask).ConfigureAwait(false);
+            task.Start();
         }
 
-        private void UpdateQueueStatus()
+        private void FinalizeTask(Task task)
         {
-            lock (_runningTasksSyncRoot)
+            lock (_syncRoot)
             {
-                lock (_tasksQueueSyncRoot)
-                {
-                    if (_runningTasks.Count != 0 || _tasksQueue.Count <= 0) return;
+                _runningTasks.Remove(task);
+                if (_tasksQueue.Count <= 0) return;
 
-                    var t = _tasksQueue.Dequeue();
-                    t.Start().ContinueWith(_ => FinalizeTask(t)).ConfigureAwait(false);
-                    _runningTasks.Add(t);
-                }
-            }
-        }
-
-        private void FinalizeTask(ArtHoarderTask artHoarderTask)
-        {
-            lock (_runningTasksSyncRoot)
-            {
-                if (!_runningTasks.Remove(artHoarderTask))
-                {
-                    _logger.LogWarning("List of running tasks does not contain task: {Task}.",
-                        artHoarderTask.ToString());
-                }
+                var valueTuple = _tasksQueue.Dequeue();
+                RunTask(valueTuple.task, valueTuple.tokenSource);
             }
         }
     }

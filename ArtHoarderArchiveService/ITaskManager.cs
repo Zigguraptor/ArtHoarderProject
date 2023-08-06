@@ -2,5 +2,6 @@ namespace ArtHoarderArchiveService;
 
 public interface ITaskManager
 {
-    public void EnqueueTask(ArtHoarderTask artHoarderTask);
+    public void StartParallelTask(Task task, CancellationTokenSource tokenSource);
+    public void EnqueueTask(Task task, CancellationTokenSource tokenSource);
 }
