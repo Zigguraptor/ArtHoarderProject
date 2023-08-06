@@ -25,25 +25,32 @@ public class CommandsParser : ICommandsParser
     public (string path, BaseVerb verb) ParsCommand(string command)
     {
         var strings = SplitCommand(command);
-        var path = strings[0];
-        var args = strings[2..];
 
-        path = Unescape(path);
-
-        for (var i = 0; i < args.Length; i++)
+        if (strings.Length > 1)
         {
-            args[i] = Unescape(args[i]);
+            var path = strings[0];
+            var args = strings[2..];
+
+            path = Unescape(path);
+
+            for (var i = 0; i < args.Length; i++)
+                args[i] = Unescape(args[i]);
+
+            var parsedObj = _argsParser.ParseArgs(args);
+
+            if (parsedObj is BaseVerb verb)
+            {
+                return (path, verb);
+            }
+            else
+            {
+                _logger.LogError("Command parsing error. Parsed object is no BaseVerb.");
+                throw new InvalidCastException("parsed object is no ");
+            }
         }
 
-        var parsedObj = _argsParser.ParseArgs(args);
-
-        if (parsedObj is BaseVerb verb)
-        {
-            return (path, verb);
-        }
-
-        _logger.LogError("Command parsing error. Parsed object is no BaseVerb.");
-        throw new InvalidCastException("parsed object is no ");
+        _logger.LogError("Command parsing error. Not enough arguments");
+        throw new InvalidCastException("Parsed object is no BaseVerb. Not enough arguments");
     }
 
 
