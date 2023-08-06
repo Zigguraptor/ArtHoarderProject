@@ -7,7 +7,12 @@ namespace ArtHoarderArchiveService
         public static void Main(string[] args)
         {
             IHost host = Host.CreateDefaultBuilder(args)
-                .ConfigureServices(services => { services.AddHostedService<NamedPipeCommunicator>(); })
+                .ConfigureServices(services =>
+                {
+                    services.AddSingleton<ICommandsParser, CommandsParser>();
+                    services.AddSingleton<ITaskManager, TaskManager>();
+                    services.AddHostedService<NamedPipeCommunicator>();
+                })
                 .Build();
 
             host.Run();
