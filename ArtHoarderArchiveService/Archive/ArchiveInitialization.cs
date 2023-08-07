@@ -50,16 +50,5 @@ internal static class ArchiveInitialization
         using var
             context = new MainDbContext(
                 workDirectory); //Там вложенный контекст для аудита. По тому директория, а не путь
-        try
-        {
-            context.Database.ExecuteSqlRaw
-            (@"CREATE VIEW `View_DisplayedGalleries` AS
-    SELECT GalleryProfiles.UserName, GalleryProfiles.OwnerName, GalleryProfiles.Uri
-     FROM `GalleryProfiles`;");
-        }
-        catch
-        {
-            // ignored
-        }
     }
 }
