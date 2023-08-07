@@ -4,7 +4,7 @@ namespace ArtHoarderArchiveService.PipeCommunications;
 
 public class NamedPipeCommunicator : BackgroundService, INamedPipeCommunicator
 {
-    private const int NumThreads = 1;
+    private const int NumThreads = 8;
     private readonly ILogger<TaskManager> _logger;
     private readonly ICommandsParser _commandsParser;
     private readonly ITaskManager _taskManager;
@@ -16,7 +16,6 @@ public class NamedPipeCommunicator : BackgroundService, INamedPipeCommunicator
         _taskManager = taskManager;
     }
 
-
     public async Task StartCommunicationAsync(CancellationToken cancellationToken)
     {
         await using var serverStream = new NamedPipeServerStream("ArtHoarderArchive_Tasks", PipeDirection.InOut,
@@ -24,11 +23,7 @@ public class NamedPipeCommunicator : BackgroundService, INamedPipeCommunicator
         while (!cancellationToken.IsCancellationRequested)
         {
             await serverStream.WaitForConnectionAsync(cancellationToken);
-            var streamString = new StreamString(serverStream);
-            if (InitConnection(streamString))
-                RegTaskFromPipe(streamString);
-
-            serverStream.Disconnect();
+            await TaskFromPipe(serverStream).ConfigureAwait(false);
         }
     }
 
@@ -47,45 +42,52 @@ public class NamedPipeCommunicator : BackgroundService, INamedPipeCommunicator
         return true;
     }
 
-    private void RegTaskFromPipe(StreamString streamString)
+    private Task TaskFromPipe(NamedPipeServerStream serverStream)
     {
+        var streamString = new StreamString(serverStream);
+        if (!InitConnection(streamString))
+        {
+            serverStream.Disconnect();
+            return Task.CompletedTask;
+        }
+
         try
         {
             var command = streamString.ReadString();
-            if (command != null)
+            if (command == null) return Task.CompletedTask;
+
+            var parsedTuple = _commandsParser.ParsCommand(command);
+
+            if (!parsedTuple.verb.Validate(out var errors))
             {
-                var parsedTuple = _commandsParser.ParsCommand(command);
+                foreach (var error in errors!)
+                    streamString.WriteString(error);
 
-                if (parsedTuple.verb.Validate(out var errors))
-                {
-                    foreach (var error in errors!)
-                        streamString.WriteString(error);
-                    return;
-                }
-
-                var tokenSource = new CancellationTokenSource();
-                var task = ArtHoarderTaskFactory.Create(parsedTuple.path, parsedTuple.verb, streamString,
-                    tokenSource.Token);
-
-                if (parsedTuple.verb.IsParallel)
-                {
-                    _taskManager.StartParallelTask(task, tokenSource);
-                }
-                else
-                {
-                    _taskManager.EnqueueTask(task, tokenSource);
-                }
+                return Task.CompletedTask;
             }
+
+            var tokenSource = new CancellationTokenSource();
+            var task = ArtHoarderTaskFactory.Create(parsedTuple.path, parsedTuple.verb, serverStream, streamString,
+                tokenSource.Token);
+
+            return parsedTuple.verb.IsParallel
+                ? _taskManager.StartParallelTask(task, tokenSource)
+                : _taskManager.EnqueueTask(task, tokenSource);
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
+            return Task.CompletedTask;
         }
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("NamedPipeCommunicator started");
-        throw new NotImplementedException();
+        var tasks = new Task[NumThreads];
+        for (var i = 0; i < NumThreads; i++)
+            tasks[i] = StartCommunicationAsync(stoppingToken);
+        _logger.LogInformation($"NamedPipeCommunicator started in {NumThreads} thread.");
+
+        return Task.CompletedTask;
     }
 }

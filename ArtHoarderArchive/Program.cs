@@ -9,7 +9,5 @@ if (args.Length < 1)
     if (s != null) args = s.Split(' ');
 }
 
-
-
 var communicator = new NamedPipeCommunicator();
-await communicator.SendCommandAsync(CommandCreator.Create(args));
+await communicator.SendCommandAsync(CommandCreator.Create(args), new CancellationToken(false));

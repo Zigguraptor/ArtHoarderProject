@@ -4,10 +4,7 @@ namespace ArtHoarderArchive;
 
 public class NamedPipeCommunicator
 {
-    public Task SendCommandAsync(string text)
-    {
-        return SendCommandAsync(text, new CancellationToken(false));
-    }
+    public Task SendCommandAsync(string text) => SendCommandAsync(text, new CancellationToken(false));
 
     public async Task SendCommandAsync(string text, CancellationToken cancellationToken)
     {
@@ -20,7 +17,6 @@ public class NamedPipeCommunicator
             if (InitConnection(streamString))
             {
                 streamString.WriteString(text);
-
                 Listen(streamString);
             }
 
@@ -49,9 +45,9 @@ public class NamedPipeCommunicator
         {
             if (s.Length > 0 && s[0] == '#')
             {
-                if (s == "#End")
+                if (s == "#END")
                     return;
-                
+
                 CommandParser.ParsCommand(s);
             }
             else

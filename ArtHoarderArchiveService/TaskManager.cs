@@ -14,37 +14,38 @@ namespace ArtHoarderArchiveService
             _logger = logger;
         }
 
-        public void StartParallelTask(Task task, CancellationTokenSource tokenSource)
+        public Task StartParallelTask(Task task, CancellationTokenSource tokenSource)
         {
             lock (_syncRoot)
-                RunTask(task, tokenSource);
+                return RunTask(task, tokenSource);
         }
 
-        public void EnqueueTask(Task task, CancellationTokenSource tokenSource)
+        public Task EnqueueTask(Task task, CancellationTokenSource tokenSource)
         {
             lock (_syncRoot)
             {
                 if (_tasksQueue.Count > 0)
                 {
                     _tasksQueue.Enqueue((task, tokenSource));
-                    return;
+                    return task;
                 }
 
                 if (_runningTasks.Count > 0)
                 {
                     _tasksQueue.Enqueue((task, tokenSource));
-                    return;
+                    return task;
                 }
 
-                RunTask(task, tokenSource);
+                return RunTask(task, tokenSource);
             }
         }
 
-        private void RunTask(Task task, CancellationTokenSource tokenSource)
+        private Task RunTask(Task task, CancellationTokenSource tokenSource)
         {
             _runningTasks.Add(task, tokenSource);
-            task.ContinueWith(FinalizeTask).ConfigureAwait(false);
+            task.ContinueWith(FinalizeTask);
             task.Start();
+            return task;
         }
 
         private void FinalizeTask(Task task)

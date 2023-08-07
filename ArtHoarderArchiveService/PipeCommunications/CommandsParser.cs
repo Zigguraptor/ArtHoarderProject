@@ -29,7 +29,7 @@ public class CommandsParser : ICommandsParser
         if (strings.Length > 1)
         {
             var path = strings[0];
-            var args = strings[2..];
+            var args = strings[1..];
 
             path = Unescape(path);
 

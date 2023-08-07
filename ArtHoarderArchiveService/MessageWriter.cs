@@ -30,7 +30,7 @@ public class MessageWriter : IMessageWriter
 
     public void Write(string message)
     {
-        _streamString.WriteString('/' + message);
+        _streamString.WriteString(message);
     }
 
     public void Write(string message, LogLevel logLevel)
@@ -102,5 +102,10 @@ public class MessageWriter : IMessageWriter
     {
         s = s.Replace("\\", "\\\\");
         return s.Replace("\"", "\\\"");
+    }
+
+    public void Close()
+    {
+        Write("#END");
     }
 }
