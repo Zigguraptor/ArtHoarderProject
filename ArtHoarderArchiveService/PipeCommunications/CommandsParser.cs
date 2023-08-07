@@ -18,6 +18,7 @@ public class CommandsParser : ICommandsParser
             .AddVerb<AddVerb>()
             .AddVerb<UpdateVerb>()
             .AddVerb<StatusVerb>()
+            .AllowNoArguments()
             .Build();
     }
 
