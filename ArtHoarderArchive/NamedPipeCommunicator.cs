@@ -2,11 +2,11 @@ using System.IO.Pipes;
 
 namespace ArtHoarderArchive;
 
-public class NamedPipeCommunicator
+public static class NamedPipeCommunicator
 {
-    public Task SendCommandAsync(string text) => SendCommandAsync(text, new CancellationToken(false));
+    public static Task SendCommandAsync(string text) => SendCommandAsync(text, new CancellationToken(false));
 
-    public async Task SendCommandAsync(string text, CancellationToken cancellationToken)
+    public static async Task SendCommandAsync(string text, CancellationToken cancellationToken)
     {
         await using var pipeClient = new NamedPipeClientStream(".", "ArtHoarderArchive_Tasks", PipeDirection.InOut,
             PipeOptions.Asynchronous);
@@ -29,7 +29,7 @@ public class NamedPipeCommunicator
         }
     }
 
-    private bool InitConnection(StreamString streamString)
+    private static bool InitConnection(StreamString streamString)
     {
         if (streamString.ReadString() == "OK")
             return true;
@@ -38,8 +38,9 @@ public class NamedPipeCommunicator
         return false;
     }
 
-    private void Listen(StreamString streamString)
+    private static void Listen(StreamString streamString)
     {
+        var commandExecutor = new CommandExecutor(streamString);
         var s = streamString.ReadString();
         while (s != null)
         {
@@ -48,7 +49,7 @@ public class NamedPipeCommunicator
                 if (s == "#END")
                     return;
 
-                CommandParser.ParsCommand(s);
+                commandExecutor.ExecuteCommand(s);
             }
             else
             {

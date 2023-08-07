@@ -3,9 +3,16 @@ using System.Text.RegularExpressions;
 
 namespace ArtHoarderArchive;
 
-public static class CommandParser
+public class CommandExecutor
 {
-    public static void ParsCommand(string command)
+    private readonly StreamString _streamString;
+
+    public CommandExecutor(StreamString streamString)
+    {
+        _streamString = streamString;
+    }
+
+    public void ExecuteCommand(string command)
     {
         if (command.StartsWith("#Log "))
         {
@@ -15,13 +22,19 @@ public static class CommandParser
         {
             ParsUpdateProgress(command[8..]);
         }
+        else if (command == "#ReadLine")
+        {
+            var line = Console.ReadLine();
+            if (line != null)
+                _streamString.WriteString(line);
+        }
     }
 
     private static void ParsUpdateProgress(string command)
     {
         var progressBar = JsonSerializer.Deserialize<ProgressBar>(command);
         if (progressBar == null) return;
-        
+
         Printer.UpdateBar(progressBar);
     }
 
