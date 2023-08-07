@@ -16,11 +16,12 @@ public class StreamString
     public string? ReadString()
     {
         var len = _ioStream.ReadByte();
+        len *= 256;
+        len += _ioStream.ReadByte();
+
         if (len < 0)
             return null;
 
-        len *= 256;
-        len += _ioStream.ReadByte();
         var inBuffer = new byte[len];
         // ReSharper disable once MustUseReturnValue
         _ioStream.Read(inBuffer, 0, len);
@@ -33,9 +34,7 @@ public class StreamString
         var outBuffer = _streamEncoding.GetBytes(outString);
         var len = outBuffer.Length;
         if (len > ushort.MaxValue)
-        {
             len = ushort.MaxValue;
-        }
 
         _ioStream.WriteByte((byte)(len / 256));
         _ioStream.WriteByte((byte)(len & 255));
