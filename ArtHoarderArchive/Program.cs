@@ -3,7 +3,7 @@
 if (args.Length < 1)
 {
     Console.WriteLine("Enter the command");
-    Console.WriteLine(">");
+    Console.Write(">");
 
     var s = Console.ReadLine();
     if (s != null) args = s.Split(' ');
