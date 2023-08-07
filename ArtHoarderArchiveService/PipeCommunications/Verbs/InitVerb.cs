@@ -7,6 +7,11 @@ namespace ArtHoarderArchiveService.PipeCommunications.Verbs;
 [Verb("init")]
 public class InitVerb : BaseVerb
 {
+    public InitVerb()
+    {
+        IsParallel = true;
+    }
+
     // ReSharper disable once UnusedAutoPropertyAccessor.Global
     [Value(0, 0, 1)] public string? Path { get; set; }
 
