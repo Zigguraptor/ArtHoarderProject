@@ -24,13 +24,13 @@ internal abstract class Parser
         {
             var msg = $"Profile not found on uri: {galleryUri}";
             LogError(msg);
-            progressWriter.Write(msg, LogLevel.Error);
+            progressWriter.WriteLog(msg, LogLevel.Error);
             return;
         }
 
         if (!_parsHandler.RegisterGalleryProfile(GetProfile(galleryUri, doc), dirName))
         {
-            progressWriter.Write($"Saving error. Changes aborted. {galleryUri}", LogLevel.Error);
+            progressWriter.WriteLog($"Saving error. Changes aborted. {galleryUri}", LogLevel.Error);
             return;
         }
 
@@ -83,7 +83,7 @@ internal abstract class Parser
             {
                 var msg = $"Profile not found on uri: {scheduledGalleryUpdateInfo.GalleryUri}";
                 LogError(msg);
-                progressWriter.Write(msg, LogLevel.Error);
+                progressWriter.WriteLog(msg, LogLevel.Error);
                 return;
             }
 
@@ -143,7 +143,7 @@ internal abstract class Parser
                     else
                     {
                         var msg = $"\"{uri}\" Failed to load submission html doc. Parsing of this page is canceled.";
-                        progressWriter.Write(msg, LogLevel.Error);
+                        progressWriter.WriteLog(msg, LogLevel.Error);
                         LogError(msg);
                         progressWriter.UpdateBar();
                     }

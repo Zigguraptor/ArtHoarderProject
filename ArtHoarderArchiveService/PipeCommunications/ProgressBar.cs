@@ -35,7 +35,7 @@ public sealed class ProgressBar : IProgressWriter
 
     public void Write(string message) => _messageWriter.Write(message);
 
-    public void Write(string message, LogLevel logLevel) => _messageWriter.Write(message, logLevel);
+    public void WriteLog(string message, LogLevel logLevel) => _messageWriter.WriteLog(message, logLevel);
 
     public void UpdateBar()
     {

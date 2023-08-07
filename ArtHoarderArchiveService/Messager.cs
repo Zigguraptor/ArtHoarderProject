@@ -1,26 +1,28 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Timers;
 using ArtHoarderArchiveService.PipeCommunications;
 using Timer = System.Timers.Timer;
 
 namespace ArtHoarderArchiveService;
 
-public class MessageWriter : IMessageWriter
+public class Messager : IMessageWriter
 {
     private const char Separator = ' ';
     private const char Insulator = '\"';
     private const string UpdatePbCommand = "#Update ";
     private const string LogCommand = "#Log ";
+    private const string ReadLineCommand = "#ReadLine";
+    private const string ClosingCommand = "#END";
 
-    private readonly object _syncRoot = new();
+    private readonly object _writerSyncRoot = new();
+    private readonly object _updateTimerSyncRoot = new();
     private readonly Timer _updateProgressBarLimiter;
     private readonly StreamString _streamString;
 
     private bool _upgradePlanned;
     private ProgressBar? _progressBar;
 
-    public MessageWriter(StreamString streamString)
+    public Messager(StreamString streamString)
     {
         _streamString = streamString;
         _updateProgressBarLimiter = new Timer(250);
@@ -28,14 +30,24 @@ public class MessageWriter : IMessageWriter
         _updateProgressBarLimiter.Elapsed += SendProgressBars;
     }
 
-    public void Write(string message)
+    public string? ReadLine()
     {
-        _streamString.WriteString(message);
+        lock (_writerSyncRoot)
+        {
+            _streamString.WriteString(ReadLineCommand);
+            return _streamString.ReadString();
+        }
     }
 
-    public void Write(string message, LogLevel logLevel)
+    public void Write(string message)
     {
-        _streamString.WriteString(LogCommand + logLevel + ' ' + message);
+        lock (_writerSyncRoot)
+            _streamString.WriteString(message);
+    }
+
+    public void WriteLog(string message, LogLevel logLevel)
+    {
+        Write(LogCommand + logLevel + ' ' + message);
     }
 
     public ProgressBar CreateNewProgressBar(string name, int max)
@@ -61,7 +73,7 @@ public class MessageWriter : IMessageWriter
     public void UpdateProgressBar() //TODO test it
     {
         if (_upgradePlanned) return;
-        lock (_syncRoot)
+        lock (_updateTimerSyncRoot)
         {
             if (_upgradePlanned) return;
             _upgradePlanned = true;
@@ -71,31 +83,9 @@ public class MessageWriter : IMessageWriter
 
     private void SendProgressBars(object? sender, ElapsedEventArgs elapsedEventArgs)
     {
-        if (_progressBar != null)
-        {
-            var progressBar = JsonSerializer.Serialize(_progressBar);
-            _streamString.WriteString(UpdatePbCommand + progressBar);
-            return;
-        }
-
-        _streamString.WriteString(UpdatePbCommand);
-    }
-
-    private void Write(string[] messages)
-    {
-        var sb = new StringBuilder();
-        for (var i = 0; i < messages.Length;)
-        {
-            messages[i] = Escape(messages[i]);
-
-            sb.Append(Insulator);
-            sb.Append(messages[i]);
-            sb.Append(Insulator);
-            if (++i < messages.Length)
-                sb.Append(Separator);
-        }
-
-        _streamString.WriteString(sb.ToString());
+        if (_progressBar == null) return;
+        var progressBarJson = JsonSerializer.Serialize(_progressBar);
+        Write(UpdatePbCommand + progressBarJson);
     }
 
     private static string Escape(string s)
@@ -104,8 +94,5 @@ public class MessageWriter : IMessageWriter
         return s.Replace("\"", "\\\"");
     }
 
-    public void Close()
-    {
-        Write("#END");
-    }
+    public void Close() => Write(ClosingCommand);
 }

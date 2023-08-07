@@ -19,7 +19,7 @@ public sealed class UniversalParser // LordParser
         var parser = GetParser(galleryUri);
         if (parser == null)
         {
-            progressWriter.Write($"Not found parser for {galleryUri.Host}", LogLevel.Error);
+            progressWriter.WriteLog($"Not found parser for {galleryUri.Host}", LogLevel.Error);
             return Task.CompletedTask;
         }
 
@@ -62,7 +62,7 @@ public sealed class UniversalParser // LordParser
         var parser = GetParser(scheduledGalleryUpdateInfo.GalleryUri);
         if (parser == null)
         {
-            progressWriter.Write($"Not found parser for {scheduledGalleryUpdateInfo.Host}", LogLevel.Error);
+            progressWriter.WriteLog($"Not found parser for {scheduledGalleryUpdateInfo.Host}", LogLevel.Error);
             return Task.CompletedTask;
         }
 

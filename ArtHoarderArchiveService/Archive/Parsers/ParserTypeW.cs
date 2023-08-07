@@ -275,7 +275,7 @@ internal class ParserTypeW : Parser
                 }
                 catch
                 {
-                    progressWriter.Write("Parsing error. Possibly an error in \"XpathSubmissions\"",
+                    progressWriter.WriteLog("Parsing error. Possibly an error in \"XpathSubmissions\"",
                         LogLevel.Error);
                 }
             }
@@ -300,7 +300,7 @@ internal class ParserTypeW : Parser
         if (nods == null)
         {
             const string msg = "Submissions not found on one of the pages";
-            progressWriter.Write(msg, LogLevel.Error);
+            progressWriter.WriteLog(msg, LogLevel.Error);
             LogWarning(msg);
             var profile = WebDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri);
             return GetAllSubmissionLinks(progressWriter, profile);
@@ -311,7 +311,7 @@ internal class ParserTypeW : Parser
         var firstOrDefault = nods.FirstOrDefault(n => n.Attributes.First().Value == firstLoadedSubmissionUri);
         if (firstOrDefault == null)
         {
-            progressWriter.Write("Cached submission link node not found. Reloading Gallery.", LogLevel.Warning);
+            progressWriter.WriteLog("Cached submission link node not found. Reloading Gallery.", LogLevel.Warning);
             var profile = WebDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri);
             return GetAllSubmissionLinks(progressWriter, profile);
         }
@@ -326,7 +326,7 @@ internal class ParserTypeW : Parser
             }
             catch
             {
-                progressWriter.Write("Parsing error. Possibly an error in the diagram.(XpathSubmissions)",
+                progressWriter.WriteLog("Parsing error. Possibly an error in the diagram.(XpathSubmissions)",
                     LogLevel.Error);
             }
         }
@@ -337,7 +337,7 @@ internal class ParserTypeW : Parser
             if (nods == null)
             {
                 const string msg = "Submissions not found on one of the pages";
-                progressWriter.Write(msg, LogLevel.Warning);
+                progressWriter.WriteLog(msg, LogLevel.Warning);
                 LogWarning(msg);
                 continue;
             }
@@ -349,7 +349,7 @@ internal class ParserTypeW : Parser
             }
             catch
             {
-                progressWriter.Write("Parsing error. Possibly an error in the diagram.(XpathSubmissions)",
+                progressWriter.WriteLog("Parsing error. Possibly an error in the diagram.(XpathSubmissions)",
                     LogLevel.Error);
             }
         }
@@ -382,7 +382,7 @@ internal class ParserTypeW : Parser
                 }
                 catch
                 {
-                    progressWriter.Write("Parsing error. Possibly an error in \"XpathSubmissions\"",
+                    progressWriter.WriteLog("Parsing error. Possibly an error in \"XpathSubmissions\"",
                         LogLevel.Error);
                 }
             }

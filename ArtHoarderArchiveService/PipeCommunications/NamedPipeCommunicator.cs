@@ -67,7 +67,7 @@ public class NamedPipeCommunicator : BackgroundService, INamedPipeCommunicator
             }
 
             var tokenSource = new CancellationTokenSource();
-            var task = ArtHoarderTaskFactory.Create(parsedTuple.path, parsedTuple.verb, serverStream, streamString,
+            var task = ArtHoarderTaskFactory.Create(parsedTuple.path, parsedTuple.verb, streamString,
                 tokenSource.Token);
 
             return parsedTuple.verb.IsParallel
