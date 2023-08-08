@@ -16,9 +16,6 @@ internal class ParserTypeW : Parser
 
     protected readonly ParserTypeWSettings ParserTypeWSettings;
 
-    private const string ErrorMsg =
-        "It is not right. It shouldn't be like that. NextGalleryPage() should return false if there is no doc.";
-
     public ParserTypeW(IParsHandler parsHandler, ParserTypeWSettings parserTypeWSettings) : base(parsHandler)
     {
         ParserTypeWSettings = parserTypeWSettings;
