@@ -21,6 +21,6 @@ public class UpdateVerb : BaseVerb
     public override void Invoke(IMessageWriter messageWriter, string path, CancellationToken cancellationToken)
     {
         using var context = new ArchiveContext(path);
-        context.UpdateAllGalleriesAsync(messageWriter, OldIncluded, cancellationToken).ConfigureAwait(false);
+        context.UpdateAllGalleriesAsync(messageWriter, OldIncluded, cancellationToken).Wait(cancellationToken);
     }
 }
