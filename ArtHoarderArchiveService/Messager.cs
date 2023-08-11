@@ -39,6 +39,28 @@ public class Messager : IMessageWriter
         }
     }
 
+    public bool Confirmation(string message)
+    {
+        lock (_writerSyncRoot)
+        {
+            while (true)
+            {
+                _streamString.WriteString(message + " y or n?");
+                _streamString.WriteString(ReadLineCommand);
+                var resp = _streamString.ReadString();
+                switch (resp)
+                {
+                    case "y" or "Y":
+                        return true;
+                    case "n" or "N":
+                        return false;
+                }
+
+                _streamString.WriteString("Enter Y or N");
+            }
+        }
+    }
+
     public void Write(string message)
     {
         lock (_writerSyncRoot)
