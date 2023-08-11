@@ -1,8 +1,8 @@
 ﻿namespace ArtHoarderArchiveService.Archive.Parsers.Settings;
 
-internal class ParserSettings
+internal abstract class ParserSettings
 {
-    public string ParserType { get; set; }
+    [AutoSet] public string ParserType { get; set; }
     public string Host { get; set; }
-    public Dictionary<string, string> Settings { get; set; }
+    [AutoSet] public DateOnly Version { get; set; }
 }

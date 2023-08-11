@@ -18,6 +18,11 @@ public static class Time
         return DateTime.UtcNow;
     }
 
+    public static DateOnly NowUtcDataOnly()
+    {
+        return DateOnly.FromDateTime(NowUtcDataTime());
+    }
+    
     public static TimeOnly GetCurrentTimeOnly()
     {
         return TimeOnly.FromDateTime(NowUtcDataTime());

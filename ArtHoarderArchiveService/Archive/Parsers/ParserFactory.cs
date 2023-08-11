@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using System.Text.Json;
 using ArtHoarderArchiveService.Archive.Managers;
 using ArtHoarderArchiveService.Archive.Parsers.Settings;
 using JsonSerializer = System.Text.Json.JsonSerializer;
@@ -7,53 +7,95 @@ namespace ArtHoarderArchiveService.Archive.Parsers;
 
 internal static class ParserFactory
 {
-    //Don't forget to update prop "SupportedTypes" when adding types!!!
-    public static readonly string[] SupportedTypes = { "W" };
+    public static readonly SortedDictionary<string, Type> SupportedTypes = new();
     public static List<ParserSettings> ParsersSettingsList { get; private set; } = null!;
-    public static HashSet<string>? UnsupportedTypes { get; private set; }
+    public static string? UnsupportedTypesReport { get; private set; }
+    private static readonly object ConfigsUpdateSyncRoot = new();
 
     static ParserFactory()
     {
+        Directory.CreateDirectory(Constants.ParsersConfigs);
+        //Don't forget to update prop "SupportedTypes" when adding types!!!
+        SupportedTypes.Add("W", typeof(ParserTypeWSettings));
         ReloadParsesSettings();
     }
 
     public static void ReloadParsesSettings()
     {
-        ParsersSettingsList = new List<ParserSettings>();
-        UnsupportedTypes = new HashSet<string>();
-        foreach (var fileName in Directory.GetFiles(Constants.ParsersConfigs))
+        lock (ConfigsUpdateSyncRoot)
         {
-            try
-            {
-                var settings = JsonSerializer.Deserialize<ParserSettings>(File.ReadAllText(fileName));
-                if (settings?.Settings == null) continue;
+            ParsersSettingsList = new List<ParserSettings>();
+            UnsupportedTypesReport = "";
+            foreach (var fileName in Directory.GetFiles(Constants.ParsersConfigs))
+                RegParserSettings(null, fileName);
 
-                if (SupportedTypes.Contains(settings.ParserType))
-                {
-                    ParsersSettingsList.Add(settings);
-                }
-                else
-                {
-                    UnsupportedTypes.Add(settings.ParserType);
-                }
-            }
-            catch (Exception e)
+            if (UnsupportedTypesReport.Length == 0)
+                UnsupportedTypesReport = null;
+        }
+    }
+
+    public static void ReloadParsesSettings(IMessageWriter messageWriter)
+    {
+        lock (ConfigsUpdateSyncRoot)
+        {
+            ParsersSettingsList = new List<ParserSettings>();
+            UnsupportedTypesReport = "";
+            var files = Directory.GetFiles(Constants.ParsersConfigs);
+            var subBar = messageWriter.CreateNewProgressBar("Loading configs", files.Length);
+            foreach (var fileName in files)
             {
-                Console.WriteLine(e);
+                subBar.UpdateBar(fileName);
+                RegParserSettings(subBar, fileName);
             }
+
+            if (UnsupportedTypesReport.Length == 0)
+                UnsupportedTypesReport = null;
+        }
+    }
+
+    private static void RegParserSettings(IProgressWriter? progressWriter, string path)
+    {
+        var parserSettings = DeserializeParserSettings(progressWriter, path);
+        if (parserSettings != null)
+            ParsersSettingsList.Add(parserSettings);
+    }
+
+    private static ParserSettings? DeserializeParserSettings(IProgressWriter? progressWriter, string path)
+    {
+        string jsonContent;
+        try
+        {
+            jsonContent = File.ReadAllText(path);
+        }
+        catch
+        {
+            progressWriter?.Write("File reading error. " + path);
+            return null;
         }
 
-        if (UnsupportedTypes.Count == 0)
-            UnsupportedTypes = null;
+        try
+        {
+            var rootElement = JsonDocument.Parse(jsonContent).RootElement;
+            var objectType = rootElement.GetProperty("ParserType").GetString();
 
-        Console.WriteLine($"{ParsersSettingsList.Count} parsers settings loaded. For hosts: ");
+            ParserSettings? parserSettings = null;
+            switch (objectType)
+            {
+                case "W":
+                    parserSettings = JsonSerializer.Deserialize<ParserTypeWSettings>(jsonContent);
+                    break;
+                default:
+                    progressWriter?.Write($"Unsupported type {objectType} config path: {path}");
+                    break;
+            }
 
-        var sb = new StringBuilder();
-        foreach (var settings in ParsersSettingsList)
-            sb.Append(settings.Host + '\n');
-
-        Console.WriteLine(sb.ToString());
-        Console.WriteLine("___");
+            return parserSettings;
+        }
+        catch
+        {
+            progressWriter?.Write("Deserialization error " + path);
+            return null;
+        }
     }
 
     public static Parser? Create(IParsHandler parsHandler, Uri uri)
@@ -69,15 +111,125 @@ internal static class ParserFactory
         return settings.ParserType switch
         {
             //Don't forget to update prop "SupportedTypes" when adding types!!!
-            "W" => new ParserTypeW(parsHandler, new ParserTypeWSettings(uri.Host, settings.Settings)),
+            "W" => new ParserTypeW(parsHandler, (ParserTypeWSettings)settings), //TODO handle cast ex
             _ => throw new Exception(
                 $"Not found parser type. Check the spelling of the settings file" +
-                $" or update the version of the program. SupportedTypes: {SupportedTypes.Aggregate("", (current, s) => current + s + ", ")}.")
+                $" or update the version of the program. SupportedTypes: {SupportedTypes.Aggregate("", (current, s) => current + s.Key + ", ")}.")
         };
     }
 
     public static bool IsSupportedLink(Uri uri)
     {
         return ParsersSettingsList.Any(s => s.Host == uri.Host);
+    }
+
+    public static void ImportParserConfig(IMessageWriter messageWriter, ParserSettings importedSettings)
+    {
+        try
+        {
+            foreach (var fileName in Directory.GetFiles(Constants.ParsersConfigs))
+            {
+                var parserSettings = DeserializeParserSettings(null, fileName);
+                if (parserSettings?.Host != importedSettings.Host) continue;
+                var word = "";
+                if (importedSettings.Version > parserSettings.Version)
+                    word = "(new)";
+                else if (importedSettings.Version < parserSettings.Version)
+                    word = "(old)";
+
+                messageWriter.WriteLine(
+                    $"The config for {parserSettings.Host} already exists.\n  Loaded version {parserSettings.Version}\nImported version {importedSettings.Version} {word}");
+                if (!messageWriter.Confirmation("Replace?")) return;
+                File.Delete(fileName);
+                using var fileStream = File.Create(fileName);
+                JsonSerializer.Serialize(fileStream, (object)importedSettings);
+                return;
+            }
+
+            var newFileName = importedSettings.Host + importedSettings.Version.ToString("O");
+            var newPath = Path.Combine(Constants.ParsersConfigs, newFileName + ".parsercfg");
+            if (File.Exists(newPath))
+            {
+                for (var i = 0; i < 100; i++)
+                {
+                    newPath = Path.Combine(Constants.ParsersConfigs, newFileName + $"({i})" + ".parsercfg");
+                    if (File.Exists(newPath)) continue;
+                    using var fileStream = File.Create(newPath);
+                    JsonSerializer.Serialize(fileStream, (object)importedSettings);
+                    return;
+                }
+
+                messageWriter.WriteLine($"Name error. Check {Constants.ParsersConfigs}");
+            }
+            else
+            {
+                using var fileStream = File.Create(newPath);
+                JsonSerializer.Serialize(fileStream, (object)importedSettings);
+            }
+        }
+        catch
+        {
+            messageWriter.WriteLine("Saving error");
+        }
+    }
+
+    public static void ImportParserConfig(IMessageWriter messageWriter, string cfgPath)
+    {
+        if (!File.Exists(cfgPath))
+        {
+            messageWriter.WriteLine("File not exists.");
+            return;
+        }
+
+        var importedSettings = DeserializeParserSettings(null, cfgPath);
+        if (importedSettings == null)
+        {
+            messageWriter.WriteLine("Deserialize error. The imported config is incorrect.");
+            return;
+        }
+
+        try
+        {
+            foreach (var fileName in Directory.GetFiles(Constants.ParsersConfigs))
+            {
+                var parserSettings = DeserializeParserSettings(null, fileName);
+                if (parserSettings?.Host != importedSettings.Host) continue;
+                var word = "";
+                if (importedSettings.Version > parserSettings.Version)
+                    word = "(new)";
+                else if (importedSettings.Version < parserSettings.Version)
+                    word = "(old)";
+
+                messageWriter.WriteLine(
+                    $"The config for {parserSettings.Host} already exists.\nLoaded version {parserSettings.Version}\n Imported version {importedSettings.Version} {word}");
+                if (messageWriter.Confirmation("Replace?"))
+                    File.Copy(cfgPath, fileName, true);
+                else
+                    return;
+            }
+
+            var newFileName = importedSettings.Host + importedSettings.Version.ToString("O");
+            var newPath = Path.Combine(Constants.ParsersConfigs, newFileName + ".parsercfg");
+            if (File.Exists(newPath))
+            {
+                for (var i = 0; i < 100; i++)
+                {
+                    newPath = Path.Combine(Constants.ParsersConfigs, newFileName + $"({i})" + ".parsercfg");
+                    if (File.Exists(newPath)) continue;
+                    File.Copy(cfgPath, newPath);
+                    return;
+                }
+
+                messageWriter.WriteLine($"Name error. Check {Constants.ParsersConfigs}");
+            }
+            else
+            {
+                File.Copy(cfgPath, newPath);
+            }
+        }
+        catch
+        {
+            messageWriter.WriteLine("File import error. " + cfgPath);
+        }
     }
 }
