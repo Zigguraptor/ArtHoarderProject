@@ -45,9 +45,15 @@ public class Messager : IMessageWriter
             _streamString.WriteString(message);
     }
 
+    public void WriteLine(string message)
+    {
+        lock (_writerSyncRoot)
+            _streamString.WriteString(message + '\n');
+    }
+
     public void WriteLog(string message, LogLevel logLevel)
     {
-        Write(LogCommand + logLevel + ' ' + message);
+        WriteLine(LogCommand + logLevel + ' ' + message);
     }
 
     public ProgressBar CreateNewProgressBar(string name, int max)
@@ -85,7 +91,7 @@ public class Messager : IMessageWriter
     {
         if (_progressBar == null) return;
         var progressBarJson = JsonSerializer.Serialize(_progressBar);
-        Write(UpdatePbCommand + progressBarJson);
+        WriteLine(UpdatePbCommand + progressBarJson);
     }
 
     private static string Escape(string s)
@@ -94,5 +100,5 @@ public class Messager : IMessageWriter
         return s.Replace("\"", "\\\"");
     }
 
-    public void Close() => Write(ClosingCommand);
+    public void Close() => WriteLine(ClosingCommand);
 }

@@ -53,7 +53,7 @@ public static class NamedPipeCommunicator
             }
             else
             {
-                Console.WriteLine(s);
+                Console.Write(s);
             }
 
             s = streamString.ReadString();

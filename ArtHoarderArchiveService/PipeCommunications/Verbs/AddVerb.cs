@@ -93,7 +93,7 @@ public class AddVerb : BaseVerb
         if (Gallery.Count % 2 != 0)
         {
             //TODO
-            statusWriter.Write("Args error");
+            statusWriter.WriteLine("Args error");
             return;
         }
 
@@ -105,7 +105,7 @@ public class AddVerb : BaseVerb
             }
             else
             {
-                statusWriter.Write($"\"{Gallery[i]}\" is not uri.");
+                statusWriter.WriteLine($"\"{Gallery[i]}\" is not uri.");
             }
         }
 
@@ -133,7 +133,7 @@ public class AddVerb : BaseVerb
             }
             else
             {
-                statusWriter.Write($"\"{s}\" is not uri.");
+                statusWriter.WriteLine($"\"{s}\" is not uri.");
             }
         }
 

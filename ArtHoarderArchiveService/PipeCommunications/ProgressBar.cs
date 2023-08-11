@@ -33,7 +33,7 @@ public sealed class ProgressBar : IProgressWriter
 
     public void Dispose() => _dispose.Invoke(this);
 
-    public void Write(string message) => _messageWriter.Write(message);
+    public void Write(string message) => _messageWriter.WriteLine(message);
 
     public void WriteLog(string message, LogLevel logLevel) => _messageWriter.WriteLog(message, logLevel);
 

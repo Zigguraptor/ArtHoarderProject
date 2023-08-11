@@ -52,7 +52,7 @@ public sealed class ArchiveContext : IDisposable
     public async Task UpdateAllGalleriesAsync(IMessageWriter statusWriter, bool oldIncluded,
         CancellationToken cancellationToken)
     {
-        statusWriter.Write("Analyze data base...");
+        statusWriter.WriteLine("Analyze data base...");
         await using var context = new MainDbContext(WorkDirectory);
         var groups = context
             .GalleryProfiles
@@ -193,7 +193,7 @@ public sealed class ArchiveContext : IDisposable
         foreach (var name in names)
         {
             if (!TryAddNewUser(name))
-                messageWriter.Write($"\"{name}\" name already exists.");
+                messageWriter.WriteLine($"\"{name}\" name already exists.");
         }
     }
 
@@ -231,7 +231,7 @@ public sealed class ArchiveContext : IDisposable
         for (var i = 0; i < uris.Count; i++)
         {
             if (!TryAddNewGallery(uris[i], ownerNames[i]))
-                statusWriter.Write($"Gallery \"{uris[i]}\" already exists.");
+                statusWriter.WriteLine($"Gallery \"{uris[i]}\" already exists.");
         }
     }
 
