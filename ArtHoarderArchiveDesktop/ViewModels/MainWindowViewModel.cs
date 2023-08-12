@@ -12,10 +12,6 @@ using ArtHoarderClient.Infrastructure.FoldersAndItems;
 using ArtHoarderClient.Models;
 using ArtHoarderClient.View.Windows;
 using ArtHoarderClient.ViewModels.Base;
-using ArtHoarderCore;
-using ArtHoarderCore.DAL.Entities;
-using ArtHoarderCore.Infrastructure;
-using ArtHoarderCore.Managers;
 using Microsoft.Win32;
 
 // ReSharper disable ObjectCreationAsStatement
