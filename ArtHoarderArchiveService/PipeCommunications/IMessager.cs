@@ -1,6 +1,4 @@
-﻿using ArtHoarderArchiveService.PipeCommunications;
-
-namespace ArtHoarderArchiveService;
+﻿namespace ArtHoarderArchiveService.PipeCommunications;
 
 public interface IMessager
 {

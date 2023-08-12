@@ -1,9 +1,8 @@
 ﻿using System.Text.Json;
 using System.Timers;
-using ArtHoarderArchiveService.PipeCommunications;
 using Timer = System.Timers.Timer;
 
-namespace ArtHoarderArchiveService;
+namespace ArtHoarderArchiveService.PipeCommunications;
 
 public class Messager : IMessager
 {

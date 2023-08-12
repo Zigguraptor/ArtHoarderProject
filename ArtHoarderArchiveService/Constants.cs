@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using ArtHoarderArchiveService.Archive.Serializable;
 
-namespace ArtHoarderArchiveService.Archive.Managers;
+namespace ArtHoarderArchiveService;
 
 internal static class Constants
 {

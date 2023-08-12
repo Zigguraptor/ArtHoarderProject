@@ -4,8 +4,8 @@ using ArtHoarderArchiveService.Archive.DAL;
 using ArtHoarderArchiveService.Archive.DAL.Entities;
 using ArtHoarderArchiveService.Archive.Infrastructure;
 using ArtHoarderArchiveService.Archive.Infrastructure.Enums;
-using ArtHoarderArchiveService.Archive.Managers;
 using ArtHoarderArchiveService.Archive.Serializable;
+using ArtHoarderArchiveService.PipeCommunications;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArtHoarderArchiveService.Archive;

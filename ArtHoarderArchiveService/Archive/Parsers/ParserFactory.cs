@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
-using ArtHoarderArchiveService.Archive.Managers;
 using ArtHoarderArchiveService.Archive.Networking;
 using ArtHoarderArchiveService.Archive.Parsers.Settings;
+using ArtHoarderArchiveService.PipeCommunications;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace ArtHoarderArchiveService.Archive.Parsers;

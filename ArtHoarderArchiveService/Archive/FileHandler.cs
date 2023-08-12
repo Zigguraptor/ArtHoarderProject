@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using ArtHoarderArchiveService.Archive.DAL;
 using ArtHoarderArchiveService.Archive.DAL.Entities;
 using ArtHoarderArchiveService.Archive.Infrastructure;
-using ArtHoarderArchiveService.Archive.Managers;
 using ArtHoarderArchiveService.Archive.Networking;
 using Microsoft.EntityFrameworkCore;
 

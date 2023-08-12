@@ -2,6 +2,7 @@
 using ArtHoarderArchiveService.Archive.DAL.Entities;
 using ArtHoarderArchiveService.Archive.Networking;
 using ArtHoarderArchiveService.Archive.Parsers.Settings;
+using ArtHoarderArchiveService.PipeCommunications;
 using HtmlAgilityPack;
 
 namespace ArtHoarderArchiveService.Archive.Parsers;

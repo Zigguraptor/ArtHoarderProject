@@ -1,6 +1,7 @@
 ﻿using System.Threading.Channels;
 using ArtHoarderArchiveService.Archive.DAL.Entities;
 using ArtHoarderArchiveService.Archive.Networking;
+using ArtHoarderArchiveService.PipeCommunications;
 using HtmlAgilityPack;
 
 namespace ArtHoarderArchiveService.Archive.Parsers;

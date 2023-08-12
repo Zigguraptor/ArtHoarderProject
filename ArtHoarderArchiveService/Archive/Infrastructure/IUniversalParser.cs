@@ -1,4 +1,5 @@
 ﻿using ArtHoarderArchiveService.Archive.DAL.Entities;
+using ArtHoarderArchiveService.PipeCommunications;
 
 namespace ArtHoarderArchiveService.Archive.Infrastructure;
 

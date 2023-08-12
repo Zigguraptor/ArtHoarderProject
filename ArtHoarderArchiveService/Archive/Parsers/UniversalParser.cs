@@ -1,6 +1,7 @@
 ﻿using ArtHoarderArchiveService.Archive.DAL.Entities;
 using ArtHoarderArchiveService.Archive.Infrastructure;
 using ArtHoarderArchiveService.Archive.Networking;
+using ArtHoarderArchiveService.PipeCommunications;
 
 namespace ArtHoarderArchiveService.Archive.Parsers;
 

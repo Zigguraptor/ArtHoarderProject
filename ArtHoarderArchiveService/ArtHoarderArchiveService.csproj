@@ -24,8 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Archive\Constants\ParsersConfigs\Fa.json" />
-    <None Include="Archive\Constants\ParsersConfigs\W.json" />
-    <None Include="Archive\Constants\ParsersConfigs\Weasyl.json" />
+    <Folder Include="Archive\HashAlgs\fastDCT\" />
   </ItemGroup>
 </Project>
