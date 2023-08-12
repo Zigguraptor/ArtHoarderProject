@@ -52,7 +52,12 @@ public class ParserVerb : BaseVerb
 
     private void CreateParserSettings(IMessager messager)
     {
-        if (!ParserFactory.SupportedTypes.TryGetValue(CreateMode!, out var cfgType)) return;
+        if (!ParserFactory.SupportedTypes.TryGetValue(CreateMode!, out var cfgType))
+        {
+            messager.WriteLine($"Unknown type \"{CreateMode}\"");
+            return;
+        }
+
         var cfgInstance = Activator.CreateInstance(cfgType);
         cfgType.GetProperty("ParserType")!.SetValue(cfgInstance, CreateMode);
         cfgType.GetProperty("Version")!.SetValue(cfgInstance, Time.NowUtcDataOnly());
