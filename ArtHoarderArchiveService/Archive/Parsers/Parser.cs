@@ -177,9 +177,7 @@ internal abstract class Parser
     public abstract Task<List<Uri>> TryGetSubscriptionsAsync(Uri uri, CancellationToken cancellationToken);
 
     public abstract string? TryGetUserName(Uri uri);
-
-    public abstract bool CheckLink(Uri uri);
-
+    
     protected void LogWarning(string message)
     {
         _parsHandler.Logger.WarningLog(

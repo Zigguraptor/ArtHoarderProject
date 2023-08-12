@@ -8,12 +8,6 @@ namespace ArtHoarderArchiveService.Archive.Parsers;
 
 internal class ParserTypeW : Parser
 {
-    private readonly string[] _mainProfilePath =
-    {
-        "user",
-        "???"
-    };
-
     protected readonly ParserTypeWSettings ParserTypeWSettings;
 
     public ParserTypeW(IParsHandler parsHandler, ParserTypeWSettings parserTypeWSettings) : base(parsHandler)
@@ -476,21 +470,6 @@ internal class ParserTypeW : Parser
         var path = uri.LocalPath.Split('/');
         if (path.Length <= 0) return null;
         return path[ParserTypeWSettings.UserNameOrderInProfileLink];
-    }
-
-    public override bool CheckLink(Uri uri)
-    {
-        var path = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-
-        if (path.Length < _mainProfilePath.Length) return true;
-
-        for (var i = 0; i < path.Length; i++)
-        {
-            if (_mainProfilePath[i] != "???" && _mainProfilePath[i] != path[i])
-                return false;
-        }
-
-        return true;
     }
 
     protected virtual HtmlDocument? GetGalleryDocument(HtmlDocument profileDocument)

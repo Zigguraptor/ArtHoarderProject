@@ -36,12 +36,6 @@ public sealed class UniversalParser // LordParser
         return GetParser(uri)?.TryGetUserName(uri);
     }
 
-    internal bool CheckLink(Uri uri)
-    {
-        var parser = GetParser(uri);
-        return parser != null && parser.CheckLink(uri);
-    }
-
     private Parser? GetParser(Uri uri)
     {
         if (_parsers.TryGetValue(uri.Host, out var parser))
