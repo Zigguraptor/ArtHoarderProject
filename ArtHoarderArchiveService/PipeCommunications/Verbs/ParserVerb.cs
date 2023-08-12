@@ -93,7 +93,7 @@ public class ParserVerb : BaseVerb
 
     private void WriteLoadedParserConfigs(IMessager messager)
     {
-        var msg = "";
+        var msg = "Loaded parsers configs:\n";
         foreach (var parserSettings in ParserFactory.ParsersSettingsList)
             msg += $"[Type: {parserSettings.ParserType}] {parserSettings.Host} [{parserSettings.Version}]\n";
 
@@ -105,7 +105,7 @@ public class ParserVerb : BaseVerb
             msg += '\n';
         }
 
-        messager.WriteLine(msg);
+        messager.Write(msg);
     }
 
     private void WriteSupportedTypes(IMessager messager)
