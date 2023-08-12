@@ -2,7 +2,7 @@
 
 namespace ArtHoarderArchiveService;
 
-public interface IMessageWriter
+public interface IMessager
 {
     public string? ReadLine();
     public bool Confirmation(string message);

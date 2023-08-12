@@ -22,7 +22,7 @@ internal class PerceptualHashing
         new FastDct()
     };
 
-    public string[] GetAvailableAlgorithms()
+    public static string[] GetAvailableAlgorithms()
     {
         var algorithms = new string[Algorithms.Length];
         for (var i = 0; i < Algorithms.Length; i++)

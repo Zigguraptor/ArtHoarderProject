@@ -5,7 +5,7 @@ using Timer = System.Timers.Timer;
 
 namespace ArtHoarderArchiveService;
 
-public class Messager : IMessageWriter
+public class Messager : IMessager
 {
     private const char Separator = ' ';
     private const char Insulator = '\"';

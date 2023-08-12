@@ -3,7 +3,6 @@ using ArtHoarderArchiveService.Archive.DAL;
 using ArtHoarderArchiveService.Archive.Infrastructure.Enums;
 using ArtHoarderArchiveService.Archive.Managers;
 using ArtHoarderArchiveService.Archive.Serializable;
-using Microsoft.EntityFrameworkCore;
 
 namespace ArtHoarderArchiveService.Archive;
 
@@ -39,7 +38,7 @@ internal static class ArchiveInitialization
         var mainFile = new ArchiveMainFile
         {
             ArchiveRootName = workDirectory,
-            LastAccess = Time.GetCurrentDateTime()
+            LastAccess = Time.NowUtcDataTime()
         };
         JsonSerializer.Serialize(mainFileStream, mainFile);
         return mainFileStream;

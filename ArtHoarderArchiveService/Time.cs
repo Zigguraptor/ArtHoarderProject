@@ -22,12 +22,12 @@ public static class Time
     {
         return DateOnly.FromDateTime(NowUtcDataTime());
     }
-    
-    public static TimeOnly GetCurrentTimeOnly()
+
+    public static TimeOnly NowCurrentTimeOnly()
     {
         return TimeOnly.FromDateTime(NowUtcDataTime());
     }
-    
+
     public static string DataTimeToString(DateTime dateTime)
     {
         return dateTime.ToString("yyyy-MM-dd HH:mm:ss");

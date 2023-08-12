@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using ArgsParser.Attributes;
+using ArtHoarderArchiveService.Archive;
 using ArtHoarderArchiveService.Archive.Parsers;
 using ArtHoarderArchiveService.Archive.Parsers.Settings;
 
@@ -26,20 +27,21 @@ public class ParserVerb : BaseVerb
         return true;
     }
 
-    public override void Invoke(IMessageWriter messageWriter, string path, CancellationToken cancellationToken)
+    public override void Invoke(IMessager messager, ArchiveContextFactory archiveContextFactory, string path,
+        CancellationToken cancellationToken)
     {
         if (Reload)
-            ParserFactory.ReloadParsesSettings(messageWriter);
+            ParserFactory.ReloadParsesSettings(messager);
         if (List)
-            WriteLoadedParserConfigs(messageWriter);
+            WriteLoadedParserConfigs(messager);
         if (SupportedTypes)
-            WriteSupportedTypes(messageWriter);
+            WriteSupportedTypes(messager);
         if (CreateMode != null)
-            CreateParserSettings(messageWriter);
+            CreateParserSettings(messager);
         if (Import != null)
         {
             foreach (var cfgPath in Import)
-                ParserFactory.ImportParserConfig(messageWriter, cfgPath);
+                ParserFactory.ImportParserConfig(messager, cfgPath);
         }
 
         if (Export != null)
@@ -48,7 +50,7 @@ public class ParserVerb : BaseVerb
         }
     }
 
-    private void CreateParserSettings(IMessageWriter messageWriter)
+    private void CreateParserSettings(IMessager messager)
     {
         if (!ParserFactory.SupportedTypes.TryGetValue(CreateMode!, out var cfgType)) return;
         var cfgInstance = Activator.CreateInstance(cfgType);
@@ -58,8 +60,8 @@ public class ParserVerb : BaseVerb
         foreach (var propertyInfo in cfgType.GetProperties())
         {
             if (propertyInfo.GetCustomAttribute(typeof(AutoSetAttribute)) != null) continue;
-            messageWriter.Write(propertyInfo.Name + ": ");
-            var line = messageWriter.ReadLine();
+            messager.Write(propertyInfo.Name + ": ");
+            var line = messager.ReadLine();
             if (line == null) return;
             if (propertyInfo.PropertyType == typeof(int))
             {
@@ -67,7 +69,7 @@ public class ParserVerb : BaseVerb
                     propertyInfo.SetValue(cfgInstance, number);
                 else
                 {
-                    messageWriter.WriteLine("\nCan not convert to int");
+                    messager.WriteLine("\nCan not convert to int");
                     return;
                 }
             }
@@ -81,10 +83,10 @@ public class ParserVerb : BaseVerb
             }
         }
 
-        ParserFactory.ImportParserConfig(messageWriter, (ParserSettings)cfgInstance!);
+        ParserFactory.ImportParserConfig(messager, (ParserSettings)cfgInstance!);
     }
 
-    private void WriteLoadedParserConfigs(IMessageWriter messageWriter)
+    private void WriteLoadedParserConfigs(IMessager messager)
     {
         var msg = "";
         foreach (var parserSettings in ParserFactory.ParsersSettingsList)
@@ -98,15 +100,15 @@ public class ParserVerb : BaseVerb
             msg += '\n';
         }
 
-        messageWriter.WriteLine(msg);
+        messager.WriteLine(msg);
     }
 
-    private void WriteSupportedTypes(IMessageWriter messageWriter)
+    private void WriteSupportedTypes(IMessager messager)
     {
         var msg = "Supported parser types: ";
         foreach (var (key, _) in ParserFactory.SupportedTypes)
             msg += key + ", ";
         msg = msg.TrimEnd(' ').TrimEnd(',') + '.';
-        messageWriter.WriteLine(msg);
+        messager.WriteLine(msg);
     }
 }

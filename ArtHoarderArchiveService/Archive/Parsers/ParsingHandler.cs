@@ -6,24 +6,27 @@ namespace ArtHoarderArchiveService.Archive.Parsers;
 
 internal class ParsingHandler : IParsHandler
 {
-    private readonly ArchiveContext _archiveContext;
-    public Logger Logger { get; }
+    private readonly ILogger<ParsingHandler> _logger;
+    private readonly FileHandler _fileHandler;
+    private readonly string _workDirectory;
 
-    public ParsingHandler(ArchiveContext archiveContext, Logger logger)
+    public ParsingHandler(ILogger<ParsingHandler> logger, FileHandler fileHandler, string workDirectory)
     {
-        _archiveContext = archiveContext;
-        Logger = logger;
+        _logger = logger;
+        _fileHandler = fileHandler;
+        _workDirectory = workDirectory;
     }
 
     public Uri? GetLastSubmissionUri(Uri galleryUri)
     {
-        using var context = new MainDbContext(_archiveContext.WorkDirectory);
+        using var context = new MainDbContext(_workDirectory);
         return context.GalleryProfiles.Find(galleryUri)?.LastSubmission;
     }
 
-    public virtual bool RegisterGalleryProfile(GalleryProfile galleryProfile, string? saveFolder)
+    public virtual bool RegisterGalleryProfile(GalleryProfile galleryProfile, string? saveFolder,
+        CancellationToken cancellationToken)
     {
-        using var context = new MainDbContext(_archiveContext.WorkDirectory);
+        using var context = new MainDbContext(_workDirectory);
         var localGalleryProfile = context.GalleryProfiles.Find(galleryProfile.Uri);
         if (localGalleryProfile == null)
         {
@@ -33,7 +36,8 @@ internal class ParsingHandler : IParsHandler
 
         if (galleryProfile.IconFileUri != null)
         {
-            var tuple = _archiveContext.CheckOrSaveFile(saveFolder, galleryProfile.IconFileUri);
+            var tuple = _fileHandler.CheckOrSaveFile(_workDirectory, saveFolder, galleryProfile.IconFileUri,
+                cancellationToken);
             galleryProfile.IconFileGuid = tuple.fileMetaInfo.Guid;
 
             localGalleryProfile.Update(galleryProfile);
@@ -44,12 +48,13 @@ internal class ParsingHandler : IParsHandler
         return TrySaveChanges(context);
     }
 
-    public virtual void RegisterSubmission(ParsedSubmission? parsedSubmission, string? saveFolder)
+    public virtual void RegisterSubmission(ParsedSubmission? parsedSubmission, string? saveFolder,
+        CancellationToken cancellationToken)
     {
         if (parsedSubmission == null)
             return;
 
-        using var context = new MainDbContext(_archiveContext.WorkDirectory);
+        using var context = new MainDbContext(_workDirectory);
         var localSubmission = context.Submissions.Find(parsedSubmission.Uri);
         if (localSubmission == null)
         {
@@ -62,12 +67,15 @@ internal class ParsingHandler : IParsHandler
         {
             if (parsedSubmission.SubmissionFileUris.Count == 1)
             {
-                var tuple = _archiveContext.CheckOrSaveFile(saveFolder, parsedSubmission.SubmissionFileUris[0]);
+                var tuple = _fileHandler.CheckOrSaveFile(_workDirectory, saveFolder,
+                    parsedSubmission.SubmissionFileUris[0], cancellationToken);
                 AddOrUpdateSubmissionFileLink(parsedSubmission.Uri, tuple.fileMetaInfo.Guid,
                     parsedSubmission.SubmissionFileUris[0]);
             }
 
-            var response = _archiveContext.CheckOrSaveFilesAsync(saveFolder, parsedSubmission.SubmissionFileUris);
+            var response =
+                _fileHandler.CheckOrSaveFiles(_workDirectory, saveFolder, parsedSubmission.SubmissionFileUris,
+                    cancellationToken);
             foreach (var valueTuple in response)
                 AddOrUpdateSubmissionFileLink(parsedSubmission.Uri, valueTuple.fileMetaInfo.Guid, valueTuple.fileUri);
         }
@@ -92,13 +100,13 @@ internal class ParsingHandler : IParsHandler
 
     public DateTime? LastFullUpdate(Uri galleryUri)
     {
-        using var context = new MainDbContext(_archiveContext.WorkDirectory);
+        using var context = new MainDbContext(_workDirectory);
         return context.GalleryProfiles.Find(galleryUri)?.LastFullUpdateTime;
     }
 
     public void UpdateLastSuccessfulSubmission(Uri galleryUri, Uri successfulSubmission)
     {
-        using var context = new MainDbContext(_archiveContext.WorkDirectory);
+        using var context = new MainDbContext(_workDirectory);
         var galleryProfile = context.GalleryProfiles.Find(galleryUri);
         if (galleryProfile == null) throw new Exception("Так быть не должно."); //TODO
 
@@ -109,7 +117,7 @@ internal class ParsingHandler : IParsHandler
 
     public void RegScheduledGalleryUpdateInfo(ScheduledGalleryUpdateInfo scheduledGalleryUpdateInfo)
     {
-        using var context = new CacheDbContext(_archiveContext.WorkDirectory);
+        using var context = new CacheDbContext(_workDirectory);
         context.Update(scheduledGalleryUpdateInfo);
         TrySaveChanges(context);
     }
@@ -131,11 +139,13 @@ internal class ParsingHandler : IParsHandler
 
     protected virtual void LogWarning(string message)
     {
-        Logger.WarningLog($"[{GetType()}] {message}");
+        throw new NotImplementedException();
+        // Logger.WarningLog($"[{GetType()}] {message}");
     }
 
     protected virtual void LogError(string message)
     {
-        Logger.ErrorLog($"[{GetType()}] {message}");
+        throw new NotImplementedException();
+        // Logger.ErrorLog($"[{GetType()}] {message}");
     }
 }

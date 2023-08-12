@@ -33,8 +33,7 @@ internal static class Constants
 
     public static string ParsersConfigs =>
         Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData,
-                Environment.SpecialFolderOption.Create), "ArtHoarderArchive", "Parsers");
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ArtHoarderArchive", "Parsers");
 
     public static string MainDbPath => Path.Combine(MetaFilesDirectory, _constants.MainDbName);
     public static string ChangesAuditDbPath => Path.Combine(MetaFilesDirectory, _constants.ChangesAuditDbName);

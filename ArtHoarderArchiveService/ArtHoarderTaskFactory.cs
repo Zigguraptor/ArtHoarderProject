@@ -1,17 +1,25 @@
-﻿using ArtHoarderArchiveService.PipeCommunications;
+﻿using ArtHoarderArchiveService.Archive;
+using ArtHoarderArchiveService.PipeCommunications;
 using ArtHoarderArchiveService.PipeCommunications.Verbs;
 
 namespace ArtHoarderArchiveService;
 
-public static class ArtHoarderTaskFactory
+public class ArtHoarderTaskFactory
 {
-    public static Task Create(string path, BaseVerb parsedTupleVerb, StreamString streamString,
+    private readonly ArchiveContextFactory _archiveContextFactory;
+
+    public ArtHoarderTaskFactory(ArchiveContextFactory archiveContextFactory)
+    {
+        _archiveContextFactory = archiveContextFactory;
+    }
+
+    public Task Create(string path, BaseVerb parsedTupleVerb, StreamString streamString,
         CancellationToken cancellationToken)
     {
         var messager = new Messager(streamString);
         return new Task(() =>
         {
-            parsedTupleVerb.Invoke(messager, path, cancellationToken);
+            parsedTupleVerb.Invoke(messager, _archiveContextFactory, path, cancellationToken);
             messager.Close();
         }, cancellationToken);
     }

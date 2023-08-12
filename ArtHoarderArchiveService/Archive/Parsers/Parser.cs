@@ -10,16 +10,18 @@ internal abstract class Parser
     protected string Host { get; init; } = null!;
 
     private readonly IParsHandler _parsHandler;
+    protected readonly IWebDownloader _webDownloader;
 
-    protected Parser(IParsHandler parsHandler)
+    protected Parser(IParsHandler parsHandler, IWebDownloader webDownloader)
     {
         _parsHandler = parsHandler;
+        _webDownloader = webDownloader;
     }
 
     public async Task LightUpdateGalleryAsync(
         IProgressWriter progressWriter, Uri galleryUri, string dirName, CancellationToken cancellationToken)
     {
-        var doc = await WebDownloader.GetHtmlAsync(galleryUri, cancellationToken).ConfigureAwait(false);
+        var doc = _webDownloader.GetHtml(galleryUri, cancellationToken);
         if (doc == null)
         {
             var msg = $"Profile not found on uri: {galleryUri}";
@@ -28,14 +30,15 @@ internal abstract class Parser
             return;
         }
 
-        if (!_parsHandler.RegisterGalleryProfile(GetProfile(galleryUri, doc), dirName))
+        if (!_parsHandler.RegisterGalleryProfile(GetProfile(galleryUri, doc), dirName, cancellationToken))
         {
             progressWriter.WriteLog($"Saving error. Changes aborted. {galleryUri}", LogLevel.Error);
             return;
         }
 
         progressWriter.Write($"Gallery analysis(May take a long time)... {galleryUri}");
-        var linksTuple = GetNewSubmissionLinks(progressWriter, doc, _parsHandler.GetLastSubmissionUri(galleryUri));
+        var linksTuple = GetNewSubmissionLinks(progressWriter, doc, _parsHandler.GetLastSubmissionUri(galleryUri),
+            cancellationToken);
         progressWriter.Write($"Successfully analyzed {galleryUri}");
 
         var scheduledGalleryUpdateInfo = new ScheduledGalleryUpdateInfo
@@ -67,7 +70,7 @@ internal abstract class Parser
         if (scheduledGalleryUpdateInfo.LastLoadedPage != null)
         {
             progressWriter.Write($"Gallery analysis(May take a long time)... {scheduledGalleryUpdateInfo.GalleryUri}");
-            var uris = GetOldSubmissionLinks(progressWriter, scheduledGalleryUpdateInfo);
+            var uris = GetOldSubmissionLinks(progressWriter, scheduledGalleryUpdateInfo, cancellationToken);
             progressWriter.Write($"Successfully analyzed {scheduledGalleryUpdateInfo.GalleryUri}");
 
             using var subBar =
@@ -77,8 +80,7 @@ internal abstract class Parser
         }
         else
         {
-            var doc = await WebDownloader.GetHtmlAsync(scheduledGalleryUpdateInfo.GalleryUri, cancellationToken)
-                .ConfigureAwait(false);
+            var doc = _webDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri, cancellationToken);
             if (doc == null)
             {
                 var msg = $"Profile not found on uri: {scheduledGalleryUpdateInfo.GalleryUri}";
@@ -88,7 +90,7 @@ internal abstract class Parser
             }
 
             progressWriter.Write($"Gallery analysis(May take a long time)... {scheduledGalleryUpdateInfo.GalleryUri}");
-            var uris = GetAllSubmissionLinks(progressWriter, doc);
+            var uris = GetAllSubmissionLinks(progressWriter, doc, cancellationToken);
             progressWriter.Write($"Successfully analyzed {scheduledGalleryUpdateInfo.GalleryUri}");
 
             using var subBar =
@@ -119,8 +121,9 @@ internal abstract class Parser
             await foreach (var tuple in reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
                 progressWriter.UpdateBar(tuple.uri.ToString());
-                _parsHandler.RegisterSubmission(GetSubmission(tuple.htmlDocument, tuple.uri, sourceGalleryUri),
-                    dirName);
+                _parsHandler.RegisterSubmission(
+                    GetSubmission(tuple.htmlDocument, tuple.uri, sourceGalleryUri, cancellationToken),
+                    dirName, cancellationToken);
             }
         }
 
@@ -133,7 +136,7 @@ internal abstract class Parser
                     var uri = uris[i];
                     if (cancellationToken.IsCancellationRequested) break;
 
-                    var submissionDocument = await WebDownloader.GetHtmlAsync(uri, cancellationToken);
+                    var submissionDocument = _webDownloader.GetHtml(uri, cancellationToken);
                     progressWriter.Write($"{uri} Loaded");
 
                     if (submissionDocument != null)
@@ -164,29 +167,36 @@ internal abstract class Parser
     }
 
     protected abstract GalleryProfile GetProfile(Uri profileUri, HtmlDocument profileDocument);
-    protected abstract ParsedSubmission GetSubmission(HtmlDocument htmlDocument, Uri uri, Uri sourceGallery);
 
-    protected abstract (List<Uri> submissions, string lastPage) GetNewSubmissionLinks(
-        IProgressWriter progressWriter, HtmlDocument profileDocument, Uri? lastLoadedSubmissionUri);
+    protected abstract ParsedSubmission GetSubmission(HtmlDocument htmlDocument, Uri uri, Uri sourceGallery,
+        CancellationToken cancellationToken);
 
-    protected abstract List<Uri> GetAllSubmissionLinks(IProgressWriter progressWriter, HtmlDocument profileDocument);
+    protected abstract (List<Uri> submissions, string lastPage) GetNewSubmissionLinks(IProgressWriter progressWriter,
+        HtmlDocument profileDocument, Uri? lastLoadedSubmissionUri, CancellationToken cancellationToken);
+
+    protected abstract List<Uri> GetAllSubmissionLinks(IProgressWriter progressWriter, HtmlDocument profileDocument,
+        CancellationToken cancellationToken);
 
     protected abstract List<Uri> GetOldSubmissionLinks(IProgressWriter progressWriter,
-        ScheduledGalleryUpdateInfo scheduledGalleryUpdateInfo);
+        ScheduledGalleryUpdateInfo scheduledGalleryUpdateInfo, CancellationToken cancellationToken);
 
-    public abstract Task<List<Uri>> TryGetSubscriptionsAsync(Uri uri, CancellationToken cancellationToken);
+    public abstract List<Uri> TryGetSubscriptions(Uri uri, CancellationToken cancellationToken);
 
     public abstract string? TryGetUserName(Uri uri);
-    
+
     protected void LogWarning(string message)
     {
-        _parsHandler.Logger.WarningLog(
-            $"Class: \"{GetType()}\". Settings for \"{Host}\" {message}");
+        throw new NotImplementedException();
+
+        // _parsHandler.Logger.WarningLog(
+        //     $"Class: \"{GetType()}\". Settings for \"{Host}\" {message}");
     }
 
     protected void LogError(string message)
     {
-        _parsHandler.Logger.ErrorLog(
-            $"Class: \"{GetType()}\". Settings for \"{Host}\" {message}");
+        throw new NotImplementedException();
+
+        // _parsHandler.Logger.ErrorLog(
+        //     $"Class: \"{GetType()}\". Settings for \"{Host}\" {message}");
     }
 }

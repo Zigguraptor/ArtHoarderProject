@@ -1,9 +1,11 @@
-﻿using ArgsParser.Attributes;
+﻿using System.Diagnostics.CodeAnalysis;
+using ArgsParser.Attributes;
 using ArtHoarderArchiveService.Archive;
 
 namespace ArtHoarderArchiveService.PipeCommunications.Verbs;
 
 [Verb("add", HelpText = "Add local user name or gallery profile to archive")]
+[SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
 public class AddVerb : BaseVerb
 {
     [Group("target", true)]
@@ -16,6 +18,10 @@ public class AddVerb : BaseVerb
 
     [Option('a', "auto-names", HelpText = "Automatically assign names (if you add galleries)")]
     public bool AutoNames { get; set; }
+
+    [Option('d', "download", HelpText = "TODO")] //TODO help text
+    public bool Download { get; set; }
+
 
     public override bool Validate(out List<string>? errors)
     {
@@ -57,33 +63,33 @@ public class AddVerb : BaseVerb
         return true;
     }
 
-    public override void Invoke(IMessageWriter messageWriter, string path, CancellationToken cancellationToken)
+    public override void Invoke(IMessager messager, ArchiveContextFactory archiveContextFactory, string path,
+        CancellationToken cancellationToken)
     {
+        using var context = archiveContextFactory.CreateArchiveContext(path);
         if (UserNames != null)
-            AddUsers(messageWriter, path);
+            AddUsers(messager, context);
         else
-            AddGalleries(messageWriter, path);
+            AddGalleries(messager, context);
     }
 
-    private void AddUsers(IMessageWriter statusWriter, string path)
+    private void AddUsers(IMessager statusWriter, ArchiveContext archiveContext)
     {
         if (UserNames == null)
             throw new Exception();
 
-        using var context = new ArchiveContext(path);
-
-        context.TryAddNewUsers(statusWriter, UserNames);
+        archiveContext.TryAddNewUsers(statusWriter, UserNames);
     }
 
-    private void AddGalleries(IMessageWriter statusWriter, string path)
+    private void AddGalleries(IMessager statusWriter, ArchiveContext archiveContext)
     {
         if (!AutoNames)
-            AddGalleriesNoAutoNames(statusWriter, path);
+            AddGalleriesNoAutoNames(statusWriter, archiveContext);
         else
-            AddGalleriesAutoNames(statusWriter, path);
+            AddGalleriesAutoNames(statusWriter, archiveContext);
     }
 
-    private void AddGalleriesNoAutoNames(IMessageWriter statusWriter, string path)
+    private void AddGalleriesNoAutoNames(IMessager statusWriter, ArchiveContext archiveContext)
     {
         if (Gallery == null)
             throw new Exception();
@@ -115,11 +121,10 @@ public class AddVerb : BaseVerb
             names.Add(Gallery[i]);
         }
 
-        using var context = new ArchiveContext(path);
-        context.TryAddNewGalleries(statusWriter, uris, names); //TODO
+        archiveContext.TryAddNewGalleries(statusWriter, uris, names); //TODO
     }
 
-    private void AddGalleriesAutoNames(IMessageWriter statusWriter, string path)
+    private void AddGalleriesAutoNames(IMessager statusWriter, ArchiveContext archiveContext)
     {
         if (Gallery == null)
             throw new Exception();
@@ -137,7 +142,6 @@ public class AddVerb : BaseVerb
             }
         }
 
-        using var context = new ArchiveContext(path);
-        context.TryAddNewGalleries(statusWriter, uris); //TODO
+        archiveContext.TryAddNewGalleries(statusWriter, uris); //TODO
     }
 }

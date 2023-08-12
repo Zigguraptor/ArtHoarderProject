@@ -1,13 +1,10 @@
-﻿using System.IO.Hashing;
-using System.Linq.Expressions;
-using System.Net.Http.Headers;
+﻿using System.Linq.Expressions;
 using System.Text.Json;
 using ArtHoarderArchiveService.Archive.DAL;
 using ArtHoarderArchiveService.Archive.DAL.Entities;
+using ArtHoarderArchiveService.Archive.Infrastructure;
 using ArtHoarderArchiveService.Archive.Infrastructure.Enums;
 using ArtHoarderArchiveService.Archive.Managers;
-using ArtHoarderArchiveService.Archive.Networking;
-using ArtHoarderArchiveService.Archive.Parsers;
 using ArtHoarderArchiveService.Archive.Serializable;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,23 +12,29 @@ namespace ArtHoarderArchiveService.Archive;
 
 public sealed class ArchiveContext : IDisposable
 {
-    private const int FileNameLimit = 100;
     private readonly FileStream _mainFile;
     private readonly object _filesAccessSyncObj = new();
-    public readonly string WorkDirectory;
+    private readonly string _workDirectory;
+    private readonly IFileHandler _fileHandler;
+    private readonly IUniversalParser _universalParser;
+
     private ArchiveMainFile _cachedArchiveMainFile;
-    private readonly UniversalParser _universalParser;
-    private readonly PerceptualHashing _perceptualHashing;
 
-    private string MainFilePath => Path.Combine(WorkDirectory, Constants.ArchiveMainFilePath);
+    private string MainFilePath => Path.Combine(_workDirectory, Constants.ArchiveMainFilePath);
 
-    public ArchiveContext(string workDirectory)
+    public ArchiveContext(string workDirectory, IFileHandler fileHandler, IUniversalParser universalParser)
     {
-        WorkDirectory = workDirectory;
+        _workDirectory = workDirectory;
+        _fileHandler = fileHandler;
+        _universalParser = universalParser;
+
         _mainFile = File.Open(MainFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
         _cachedArchiveMainFile = ReadArchiveFile();
-        _universalParser = new UniversalParser(new ParsingHandler(this, new Logger(WorkDirectory, "ParsingHandler")));
-        _perceptualHashing = new PerceptualHashing(WorkDirectory);
+    }
+
+    public void Dispose()
+    {
+        lock (_mainFile) _mainFile.Dispose();
     }
 
     #region publicMethods
@@ -43,17 +46,17 @@ public sealed class ArchiveContext : IDisposable
     {
         lock (_filesAccessSyncObj)
         {
-            return FilesValidator.GetFileStateSet(WorkDirectory);
+            return FilesValidator.GetFileStateSet(_workDirectory);
         }
     }
 
     #region Update
 
-    public async Task UpdateAllGalleriesAsync(IMessageWriter statusWriter, bool oldIncluded,
+    public async Task UpdateAllGalleriesAsync(IMessager statusWriter, bool oldIncluded,
         CancellationToken cancellationToken)
     {
         statusWriter.WriteLine("Analyze data base...");
-        await using var context = new MainDbContext(WorkDirectory);
+        await using var context = new MainDbContext(_workDirectory);
         var groups = context
             .GalleryProfiles
             .OrderBy(p => p.LastNewUpdateTime)
@@ -72,7 +75,7 @@ public sealed class ArchiveContext : IDisposable
 
             await context.DisposeAsync();
 
-            await using var cache = new CacheDbContext(WorkDirectory);
+            await using var cache = new CacheDbContext(_workDirectory);
             var scheduledUpdateGalleries = cache
                 .ScheduledUpdateGalleries
                 .OrderBy(i => i.LastFullUpdate)
@@ -116,7 +119,7 @@ public sealed class ArchiveContext : IDisposable
         CancellationToken cancellationToken,
         string? directoryName = null)
     {
-        using var context = new MainDbContext(WorkDirectory);
+        using var context = new MainDbContext(_workDirectory);
         var galleryProfile =
             await context.GalleryProfiles.FirstOrDefaultAsync(g => g.Uri == galleryUri,
                 cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -137,7 +140,7 @@ public sealed class ArchiveContext : IDisposable
         ScheduledGalleryUpdateInfo scheduledGalleryUpdateInfo, CancellationToken cancellationToken,
         string? directoryName = null)
     {
-        directoryName ??= GalleryAnalyzer.TryGetUserName(scheduledGalleryUpdateInfo.GalleryUri);
+        directoryName ??= _universalParser.TryGetUserName(scheduledGalleryUpdateInfo.GalleryUri);
         directoryName ??= "Other"; //TODO literal
 
         return _universalParser.ScheduledUpdateGalleryAsync(statusWriter, scheduledGalleryUpdateInfo, cancellationToken,
@@ -188,19 +191,19 @@ public sealed class ArchiveContext : IDisposable
 
     #region Add
 
-    public void TryAddNewUsers(IMessageWriter messageWriter, IEnumerable<string> names)
+    public void TryAddNewUsers(IMessager messager, IEnumerable<string> names)
     {
         foreach (var name in names)
         {
             if (!TryAddNewUser(name))
-                messageWriter.WriteLine($"\"{name}\" name already exists.");
+                messager.WriteLine($"\"{name}\" name already exists.");
         }
     }
 
     public bool TryAddNewUser(string name)
     {
-        using var context = new MainDbContext(WorkDirectory);
-        var time = Time.GetCurrentDateTime();
+        using var context = new MainDbContext(_workDirectory);
+        var time = Time.NowUtcDataTime();
         context.Users.Add(new User
         {
             Name = name,
@@ -211,19 +214,19 @@ public sealed class ArchiveContext : IDisposable
         return TrySaveDbChanges(context);
     }
 
-    public void TryAddNewGalleries(IMessageWriter statusWriter, List<Uri> uris)
+    public void TryAddNewGalleries(IMessager statusWriter, List<Uri> uris)
     {
         var names = new List<string>(uris.Count);
         if (names == null) throw new ArgumentNullException(nameof(names));
         foreach (var uri in uris)
         {
-            names.Add(GalleryAnalyzer.TryGetUserName(uri) ?? string.Empty); //TODO string.Empty is ok? 
+            names.Add(_universalParser.TryGetUserName(uri) ?? string.Empty); //TODO string.Empty is ok? 
         }
 
         TryAddNewGalleries(statusWriter, uris, names); //TODO
     }
 
-    public void TryAddNewGalleries(IMessageWriter statusWriter, List<Uri> uris, List<string> ownerNames)
+    public void TryAddNewGalleries(IMessager statusWriter, List<Uri> uris, List<string> ownerNames)
     {
         if (uris.Count != ownerNames.Count)
             throw new ArgumentException(); //TODO
@@ -247,25 +250,25 @@ public sealed class ArchiveContext : IDisposable
 
     public List<User> GetUsers()
     {
-        using var context = new MainDbContext(WorkDirectory);
+        using var context = new MainDbContext(_workDirectory);
         return context.Users.ToList();
     }
 
     public List<GalleryProfile> GetGalleryProfiles()
     {
-        using var context = new MainDbContext(WorkDirectory);
+        using var context = new MainDbContext(_workDirectory);
         return context.GalleryProfiles.ToList();
     }
 
     public List<ProfileInfo> GetGalleryProfileInfos(Expression<Func<ProfileInfo, bool>> where)
     {
-        using var context = new MainDbContext(WorkDirectory);
+        using var context = new MainDbContext(_workDirectory);
         return context.DisplayedGalleries.Where(where).ToList();
     }
 
     public List<Submission> GetSubmissions()
     {
-        using var context = new MainDbContext(WorkDirectory);
+        using var context = new MainDbContext(_workDirectory);
         return context.Submissions
             .Include(s => s.FileMetaInfos)
             .Include(s => s.SourceGallery)
@@ -274,35 +277,34 @@ public sealed class ArchiveContext : IDisposable
 
     public List<Submission> GetSubmissions(Expression<Func<Submission, bool>> where)
     {
-        using var context = new MainDbContext(WorkDirectory);
+        using var context = new MainDbContext(_workDirectory);
         return context.Submissions.Where(where)
             .Include(s => s.FileMetaInfos)
             .Include(s => s.SourceGallery)
             .ToList();
     }
 
-    public async Task<List<FileMetaInfo>> GetFileMetaInfoByHashAsync(string hashName, Guid fileGuid)
+    public List<FileMetaInfo> GetFileMetaInfoByHashAsync(string hashName, Guid fileGuid)
     {
-        if (!_perceptualHashing.GetAvailableAlgorithms().Contains(hashName))
-            return new List<FileMetaInfo>(0);
+        if (!PerceptualHashing.GetAvailableAlgorithms().Contains(hashName)) return new List<FileMetaInfo>(0);
 
-        await using var pHashDbContext = new PHashDbContext(WorkDirectory, hashName);
-        var pHashInfo = await pHashDbContext.PHashInfos.FirstOrDefaultAsync(i => i.FileGuid == fileGuid);
+        using var pHashDbContext = new PHashDbContext(_workDirectory, hashName);
+        var pHashInfo = pHashDbContext.PHashInfos.FirstOrDefault(i => i.FileGuid == fileGuid);
         if (pHashInfo is null)
             return new List<FileMetaInfo>(0);
 
-        var guids = await pHashDbContext.PHashInfos
+        var guids = pHashDbContext.PHashInfos
             .Where(i => i.Hash == pHashInfo.Hash && i.FileGuid != fileGuid)
             .Select(info => info.FileGuid)
-            .ToListAsync();
+            .ToList();
 
-        await using var mainDbContext = new MainDbContext(WorkDirectory);
-        return await mainDbContext.FilesMetaInfos.Where(i => guids.Contains(i.Guid)).ToListAsync();
+        using var mainDbContext = new MainDbContext(_workDirectory);
+        return mainDbContext.FilesMetaInfos.Where(i => guids.Contains(i.Guid)).ToList();
     }
 
     public async Task<List<FileMetaInfo>> GetFilesInfoAsync(Expression<Func<FileMetaInfo, bool>> where)
     {
-        await using var context = new MainDbContext(WorkDirectory);
+        await using var context = new MainDbContext(_workDirectory);
         var response = context.FilesMetaInfos.Where(where);
         return await response.ToListAsync();
     }
@@ -313,98 +315,10 @@ public sealed class ArchiveContext : IDisposable
 
     #endregion
 
-    #region InternalFilesManipulations
-
-    internal List<(FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders)> CheckOrSaveFilesAsync(
-        string? localDirectoryName, List<Uri> uris)
-    {
-        localDirectoryName ??= Constants.DefaultOtherDirectory;
-
-        var result = new List<(FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders)>();
-        foreach (var uri in uris) // Parallel foreach?
-            result.Add(CheckOrSaveFile(localDirectoryName, uri));
-
-        return result;
-    }
-
-    internal (FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders) CheckOrSaveFile(
-        string? localDirectoryName, Uri uri)
-    {
-        localDirectoryName ??= Constants.DefaultOtherDirectory;
-
-        var xxHash64 = new XxHash64();
-
-        var responseMessage = WebDownloader.GetAsync(uri).Result;
-        using var dbContext = new MainDbContext(WorkDirectory);
-        using var stream = responseMessage.Content.ReadAsStream();
-
-        stream.Position = 0;
-        xxHash64.Append(stream);
-
-        var fileMetaInfo =
-            dbContext.FilesMetaInfos.FirstOrDefault(fileInfo => fileInfo.XxHash == xxHash64.GetCurrentHash());
-        if (fileMetaInfo != null)
-            return (fileMetaInfo, uri, responseMessage.Headers);
-
-        var localPath = uri.AbsoluteUri.Split('/', StringSplitOptions.RemoveEmptyEntries)[^1];
-        localPath = Path.Combine(WorkDirectory, Constants.DownloadedMediaDirectory, localDirectoryName, localPath);
-
-        stream.Position = 0;
-        localPath = SaveFile(stream, localPath);
-
-        var guid = Guid.NewGuid();
-        fileMetaInfo = new FileMetaInfo
-        {
-            Guid = guid,
-            LocalFilePath = localPath,
-            XxHash = xxHash64.GetCurrentHash(),
-            FirstSaveTime = Time.GetCurrentDateTime()
-        };
-        dbContext.FilesMetaInfos.Add(fileMetaInfo);
-        TrySaveDbChanges(dbContext);
-
-        stream.Position = 0;
-        _perceptualHashing.CalculateHashes(guid, stream);
-
-        return (fileMetaInfo, uri, responseMessage.Headers);
-    }
-
-    #endregion
-
-    #region PrivateFilesManipulations
-
-    private string SaveFile(Stream sourceStream, string path)
-    {
-        path = GetFreeFileName(path);
-        Directory.CreateDirectory(Path.GetDirectoryName(path) ?? string.Empty);
-
-        using var localFileStream = File.Create(path);
-        sourceStream.CopyTo(localFileStream);
-        return path;
-    }
-
-    private static string GetFreeFileName(string startPath)
-    {
-        var newPath = startPath;
-        for (var i = 1; File.Exists(newPath) && i < FileNameLimit; i++)
-        {
-            newPath = Path.Combine(Path.GetDirectoryName(startPath) ?? string.Empty,
-                Path.GetFileNameWithoutExtension(startPath) + $"({i:D})" + Path.GetExtension(startPath));
-        }
-
-        if (!File.Exists(newPath))
-            return newPath;
-
-        throw new Exception("File naming limit: " + startPath); //TODO handle this
-    }
-
-    #endregion
-
-
     private bool TryAddGalleryProfile(Uri uri, string ownerName)
     {
-        using var context = new MainDbContext(WorkDirectory);
-        var time = Time.GetCurrentDateTime();
+        using var context = new MainDbContext(_workDirectory);
+        var time = Time.NowUtcDataTime();
 
         var owner = context.Users.Find(ownerName);
         if (owner == null)
@@ -444,23 +358,6 @@ public sealed class ArchiveContext : IDisposable
             if (archiveMainFile == null)
                 throw new Exception("Archive main file cannot be read");
             return archiveMainFile;
-        }
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    private void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            lock (_mainFile)
-            {
-                _mainFile.Dispose();
-            }
         }
     }
 }

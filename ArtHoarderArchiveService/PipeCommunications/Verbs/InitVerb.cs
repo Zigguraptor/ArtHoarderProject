@@ -21,7 +21,8 @@ public class InitVerb : BaseVerb
         return true;
     }
 
-    public override void Invoke(IMessageWriter messageWriter, string path, CancellationToken cancellationToken)
+    public override void Invoke(IMessager messager, ArchiveContextFactory archiveContextFactory, string path,
+        CancellationToken cancellationToken)
     {
         if (Path != null)
             path = Path;
@@ -29,10 +30,10 @@ public class InitVerb : BaseVerb
         switch (ArchiveInitialization.CreateArchive(path))
         {
             case CreationCode.Ok:
-                messageWriter.WriteLine("Archive created");
+                messager.WriteLine("Archive created");
                 break;
             case CreationCode.AlreadyExists:
-                messageWriter.WriteLine("Archive already exists");
+                messager.WriteLine("Archive already exists");
                 break;
             default:
                 throw new ArgumentOutOfRangeException();

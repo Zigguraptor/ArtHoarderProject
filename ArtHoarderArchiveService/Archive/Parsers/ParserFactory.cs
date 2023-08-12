@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using ArtHoarderArchiveService.Archive.Managers;
+using ArtHoarderArchiveService.Archive.Networking;
 using ArtHoarderArchiveService.Archive.Parsers.Settings;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -34,14 +35,14 @@ internal static class ParserFactory
         }
     }
 
-    public static void ReloadParsesSettings(IMessageWriter messageWriter)
+    public static void ReloadParsesSettings(IMessager messager)
     {
         lock (ConfigsUpdateSyncRoot)
         {
             ParsersSettingsList = new List<ParserSettings>();
             UnsupportedTypesReport = "";
             var files = Directory.GetFiles(Constants.ParsersConfigs);
-            var subBar = messageWriter.CreateNewProgressBar("Loading configs", files.Length);
+            var subBar = messager.CreateNewProgressBar("Loading configs", files.Length);
             foreach (var fileName in files)
             {
                 subBar.UpdateBar(fileName);
@@ -98,7 +99,7 @@ internal static class ParserFactory
         }
     }
 
-    public static Parser? Create(IParsHandler parsHandler, Uri uri)
+    public static Parser? Create(IParsHandler parsHandler, IWebDownloader webDownloader, Uri uri)
     {
         var settings = ParsersSettingsList.Find(x => x.Host == uri.Host);
         if (settings == null)
@@ -111,7 +112,7 @@ internal static class ParserFactory
         return settings.ParserType switch
         {
             //Don't forget to update prop "SupportedTypes" when adding types!!!
-            "W" => new ParserTypeW(parsHandler, (ParserTypeWSettings)settings), //TODO handle cast ex
+            "W" => new ParserTypeW(parsHandler, webDownloader, (ParserTypeWSettings)settings), //TODO handle cast ex
             _ => throw new Exception(
                 $"Not found parser type. Check the spelling of the settings file" +
                 $" or update the version of the program. SupportedTypes: {SupportedTypes.Aggregate("", (current, s) => current + s.Key + ", ")}.")
@@ -123,7 +124,7 @@ internal static class ParserFactory
         return ParsersSettingsList.Any(s => s.Host == uri.Host);
     }
 
-    public static void ImportParserConfig(IMessageWriter messageWriter, ParserSettings importedSettings)
+    public static void ImportParserConfig(IMessager messager, ParserSettings importedSettings)
     {
         try
         {
@@ -137,9 +138,9 @@ internal static class ParserFactory
                 else if (importedSettings.Version < parserSettings.Version)
                     word = "(old)";
 
-                messageWriter.WriteLine(
+                messager.WriteLine(
                     $"The config for {parserSettings.Host} already exists.\n  Loaded version {parserSettings.Version}\nImported version {importedSettings.Version} {word}");
-                if (!messageWriter.Confirmation("Replace?")) return;
+                if (!messager.Confirmation("Replace?")) return;
                 File.Delete(fileName);
                 using var fileStream = File.Create(fileName);
                 JsonSerializer.Serialize(fileStream, (object)importedSettings);
@@ -159,7 +160,7 @@ internal static class ParserFactory
                     return;
                 }
 
-                messageWriter.WriteLine($"Name error. Check {Constants.ParsersConfigs}");
+                messager.WriteLine($"Name error. Check {Constants.ParsersConfigs}");
             }
             else
             {
@@ -169,22 +170,24 @@ internal static class ParserFactory
         }
         catch
         {
-            messageWriter.WriteLine("Saving error");
+            messager.WriteLine("Saving error");
         }
+
+        ReloadParsesSettings();
     }
 
-    public static void ImportParserConfig(IMessageWriter messageWriter, string cfgPath)
+    public static void ImportParserConfig(IMessager messager, string cfgPath)
     {
         if (!File.Exists(cfgPath))
         {
-            messageWriter.WriteLine("File not exists.");
+            messager.WriteLine("File not exists.");
             return;
         }
 
         var importedSettings = DeserializeParserSettings(null, cfgPath);
         if (importedSettings == null)
         {
-            messageWriter.WriteLine("Deserialize error. The imported config is incorrect.");
+            messager.WriteLine("Deserialize error. The imported config is incorrect.");
             return;
         }
 
@@ -200,9 +203,9 @@ internal static class ParserFactory
                 else if (importedSettings.Version < parserSettings.Version)
                     word = "(old)";
 
-                messageWriter.WriteLine(
+                messager.WriteLine(
                     $"The config for {parserSettings.Host} already exists.\nLoaded version {parserSettings.Version}\n Imported version {importedSettings.Version} {word}");
-                if (messageWriter.Confirmation("Replace?"))
+                if (messager.Confirmation("Replace?"))
                     File.Copy(cfgPath, fileName, true);
                 else
                     return;
@@ -220,7 +223,7 @@ internal static class ParserFactory
                     return;
                 }
 
-                messageWriter.WriteLine($"Name error. Check {Constants.ParsersConfigs}");
+                messager.WriteLine($"Name error. Check {Constants.ParsersConfigs}");
             }
             else
             {
@@ -229,7 +232,7 @@ internal static class ParserFactory
         }
         catch
         {
-            messageWriter.WriteLine("File import error. " + cfgPath);
+            messager.WriteLine("File import error. " + cfgPath);
         }
     }
 }

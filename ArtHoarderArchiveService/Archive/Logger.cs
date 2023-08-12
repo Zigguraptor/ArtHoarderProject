@@ -30,28 +30,28 @@ public class Logger : IDisposable
         Directory.CreateDirectory(dir);
 
         _streamWriter = File.AppendText(Path.Combine(dir,
-            "Log_" + Time.GetCurrentDateTime().ToString("yyyy_MM_dd__HH_mm_ss") + ".txt"));
+            "Log_" + Time.NowUtcDataTime().ToString("yyyy_MM_dd__HH_mm_ss") + ".txt"));
         InfoLog("Logger is start.");
     }
 
     public void DebugLog(string message)
     {
-        WritMessage($"[{Time.GetCurrentDateTime():HH:mm:ss}] [{Debug}] {message}");
+        WritMessage($"[{Time.NowUtcDataTime():HH:mm:ss}] [{Debug}] {message}");
     }
 
     public void InfoLog(string message)
     {
-        WritMessage($"[{Time.GetCurrentDateTime():HH:mm:ss}] [{Info}] {message}");
+        WritMessage($"[{Time.NowUtcDataTime():HH:mm:ss}] [{Info}] {message}");
     }
 
     public void WarningLog(string message)
     {
-        WritMessage($"[{Time.GetCurrentDateTime():HH:mm:ss}] [{Warning}] {message}");
+        WritMessage($"[{Time.NowUtcDataTime():HH:mm:ss}] [{Warning}] {message}");
     }
 
     public void ErrorLog(string message)
     {
-        WritMessage($"[{Time.GetCurrentDateTime():HH:mm:ss}] [{Error}] {message}");
+        WritMessage($"[{Time.NowUtcDataTime():HH:mm:ss}] [{Error}] {message}");
     }
 
     private void WritMessage(string text)

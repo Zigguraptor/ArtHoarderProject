@@ -10,7 +10,8 @@ internal class ParserTypeW : Parser
 {
     protected readonly ParserTypeWSettings ParserTypeWSettings;
 
-    public ParserTypeW(IParsHandler parsHandler, ParserTypeWSettings parserTypeWSettings) : base(parsHandler)
+    public ParserTypeW(IParsHandler parsHandler, IWebDownloader webDownloader, ParserTypeWSettings parserTypeWSettings)
+        : base(parsHandler, webDownloader)
     {
         ParserTypeWSettings = parserTypeWSettings;
         Host = ParserTypeWSettings.Host;
@@ -50,9 +51,11 @@ internal class ParserTypeW : Parser
         };
     }
 
-    protected override ParsedSubmission GetSubmission(HtmlDocument submissionDocument, Uri uri, Uri sourceGallery)
+    protected override ParsedSubmission GetSubmission(HtmlDocument submissionDocument, Uri uri, Uri sourceGallery,
+        CancellationToken cancellationToken)
     {
-        return new ParsedSubmission(uri, sourceGallery, GetSubmissionFileUris(submissionDocument, uri))
+        return new ParsedSubmission(uri, sourceGallery,
+            GetSubmissionFileUris(submissionDocument, uri, cancellationToken))
         {
             Uri = uri,
             SourceGalleryUri = sourceGallery,
@@ -155,7 +158,8 @@ internal class ParserTypeW : Parser
         return DateTime.MinValue;
     }
 
-    protected virtual List<Uri> GetSubmissionFileUris(HtmlDocument document, Uri uri)
+    protected virtual List<Uri> GetSubmissionFileUris(HtmlDocument document, Uri uri,
+        CancellationToken cancellationToken)
     {
         var result = new List<Uri>();
         while (true)
@@ -185,7 +189,7 @@ internal class ParserTypeW : Parser
             {
                 try
                 {
-                    var htmlDocument = WebDownloader.GetHtml(new Uri("https:" + nextButton));
+                    var htmlDocument = _webDownloader.GetHtml(new Uri("https:" + nextButton), cancellationToken);
                     if (htmlDocument == null) break;
                     document = htmlDocument;
                 }
@@ -233,10 +237,10 @@ internal class ParserTypeW : Parser
         return null;
     }
 
-    protected override (List<Uri> submissions, string lastPage) GetNewSubmissionLinks(
-        IProgressWriter progressWriter, HtmlDocument profileDocument, Uri? lastLoadedSubmissionUri)
+    protected override (List<Uri> submissions, string lastPage) GetNewSubmissionLinks(IProgressWriter progressWriter,
+        HtmlDocument profileDocument, Uri? lastLoadedSubmissionUri, CancellationToken cancellationToken)
     {
-        var page = GetGalleryDocument(profileDocument);
+        var page = GetGalleryDocument(profileDocument, cancellationToken);
         if (page == null)
         {
             const string msg = "Gallery page not found. Possibly an error in \"XpathGalleryUri\"";
@@ -270,19 +274,19 @@ internal class ParserTypeW : Parser
                         LogLevel.Error);
                 }
             }
-        } while (TryGetNextGalleryPage(page, out page));
+        } while (TryGetNextGalleryPage(page, out page, cancellationToken));
 
         return (uris, lastPage.Text);
     }
 
     protected override List<Uri> GetOldSubmissionLinks(IProgressWriter progressWriter,
-        ScheduledGalleryUpdateInfo scheduledGalleryUpdateInfo)
+        ScheduledGalleryUpdateInfo scheduledGalleryUpdateInfo, CancellationToken cancellationToken)
     {
         if (scheduledGalleryUpdateInfo.LastLoadedPage == null ||
             scheduledGalleryUpdateInfo.FirstLoadedSubmissionUri == null)
         {
-            var profile = WebDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri);
-            return GetAllSubmissionLinks(progressWriter, profile);
+            var profile = _webDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri, cancellationToken);
+            return GetAllSubmissionLinks(progressWriter, profile, cancellationToken);
         }
 
         var page = new HtmlDocument();
@@ -293,8 +297,8 @@ internal class ParserTypeW : Parser
             const string msg = "Submissions not found on one of the pages";
             progressWriter.WriteLog(msg, LogLevel.Error);
             LogWarning(msg);
-            var profile = WebDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri);
-            return GetAllSubmissionLinks(progressWriter, profile);
+            var profile = _webDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri, cancellationToken);
+            return GetAllSubmissionLinks(progressWriter, profile, cancellationToken);
         }
 
         var uris = new List<Uri>();
@@ -303,8 +307,8 @@ internal class ParserTypeW : Parser
         if (firstOrDefault == null)
         {
             progressWriter.WriteLog("Cached submission link node not found. Reloading Gallery.", LogLevel.Warning);
-            var profile = WebDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri);
-            return GetAllSubmissionLinks(progressWriter, profile);
+            var profile = _webDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri, cancellationToken);
+            return GetAllSubmissionLinks(progressWriter, profile, cancellationToken);
         }
 
         var i = nods.IndexOf(firstOrDefault);
@@ -322,7 +326,7 @@ internal class ParserTypeW : Parser
             }
         }
 
-        while (TryGetNextGalleryPage(page, out page))
+        while (TryGetNextGalleryPage(page, out page, cancellationToken))
         {
             nods = page!.DocumentNode.SelectNodes(ParserTypeWSettings.XpathSubmissions);
             if (nods == null)
@@ -349,10 +353,11 @@ internal class ParserTypeW : Parser
     }
 
 
-    protected override List<Uri> GetAllSubmissionLinks(IProgressWriter progressWriter, HtmlDocument profileDocument)
+    protected override List<Uri> GetAllSubmissionLinks(IProgressWriter progressWriter, HtmlDocument profileDocument,
+        CancellationToken cancellationToken)
     {
         var uris = new List<Uri>();
-        var galleryDocument = GetGalleryDocument(profileDocument);
+        var galleryDocument = GetGalleryDocument(profileDocument, cancellationToken);
         if (galleryDocument == null) return uris;
 
         do
@@ -377,16 +382,16 @@ internal class ParserTypeW : Parser
                         LogLevel.Error);
                 }
             }
-        } while (TryGetNextGalleryPage(galleryDocument, out galleryDocument));
+        } while (TryGetNextGalleryPage(galleryDocument, out galleryDocument, cancellationToken));
 
         return uris;
     }
 
-    public override async Task<List<Uri>> TryGetSubscriptionsAsync(Uri uri, CancellationToken cancellationToken)
+    public override List<Uri> TryGetSubscriptions(Uri uri, CancellationToken cancellationToken)
     {
         // reporter.SetProgressStage("Load subscriptions pages");
         // reporter.Report($"Download \"{uri}\"");
-        var document = await WebDownloader.GetHtmlAsync(uri, cancellationToken);
+        var document = _webDownloader.GetHtml(uri, cancellationToken);
 
         var currentSubscriptionsPageUri = document?.DocumentNode
             .SelectSingleNode(ParserTypeWSettings.XpathSubscriptions)
@@ -398,9 +403,7 @@ internal class ParserTypeW : Parser
 
         currentSubscriptionsPageUri = "https://" + Host + currentSubscriptionsPageUri;
         // reporter.Report($"Download \"{currentSubscriptionsPageUri}\"");
-        var subscriptionsPage =
-            await WebDownloader.GetHtmlAsync(new Uri(currentSubscriptionsPageUri), cancellationToken)
-                .ConfigureAwait(false);
+        var subscriptionsPage = _webDownloader.GetHtml(new Uri(currentSubscriptionsPageUri), cancellationToken);
 
         if (subscriptionsPage == null) return GetSubscriptionsLinks(pages);
 
@@ -437,7 +440,7 @@ internal class ParserTypeW : Parser
             }
 
             // reporter.Report($"Download \"{currentSubscriptionsPageUri}\"");
-            var page = await WebDownloader.GetHtmlAsync(nextUri, cancellationToken).ConfigureAwait(false);
+            var page = _webDownloader.GetHtml(nextUri, cancellationToken);
             if (page == null) break;
 
             pages.Push(page);
@@ -472,12 +475,13 @@ internal class ParserTypeW : Parser
         return path[ParserTypeWSettings.UserNameOrderInProfileLink];
     }
 
-    protected virtual HtmlDocument? GetGalleryDocument(HtmlDocument profileDocument)
+    protected virtual HtmlDocument? GetGalleryDocument(HtmlDocument profileDocument,
+        CancellationToken cancellationToken)
     {
         var uri = GetGalleryUri(profileDocument);
         if (uri == null) return null;
 
-        var doc = WebDownloader.GetHtml(uri);
+        var doc = _webDownloader.GetHtml(uri, cancellationToken);
         return doc;
     }
 
@@ -500,12 +504,14 @@ internal class ParserTypeW : Parser
         return null;
     }
 
-    protected virtual bool TryGetNextGalleryPage(HtmlDocument page, out HtmlDocument? nextPage)
+    protected virtual bool TryGetNextGalleryPage(HtmlDocument page, out HtmlDocument? nextPage,
+        CancellationToken cancellationToken)
     {
         var next = page.DocumentNode.SelectSingleNode(ParserTypeWSettings.XpathNextPageButton);
         if (next != null && next.InnerText.Contains("Next"))
         {
-            nextPage = WebDownloader.GetHtml(new Uri("https://" + Host + next.Attributes.First().Value));
+            nextPage = _webDownloader.GetHtml(new Uri("https://" + Host + next.Attributes.First().Value),
+                cancellationToken);
             return true;
         }
 

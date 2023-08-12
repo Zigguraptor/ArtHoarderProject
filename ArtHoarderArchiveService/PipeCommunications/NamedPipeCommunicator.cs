@@ -8,12 +8,15 @@ public class NamedPipeCommunicator : BackgroundService, INamedPipeCommunicator
     private readonly ILogger<TaskManager> _logger;
     private readonly ICommandsParser _commandsParser;
     private readonly ITaskManager _taskManager;
+    private readonly ArtHoarderTaskFactory _artHoarderTaskFactory;
 
-    public NamedPipeCommunicator(ILogger<TaskManager> logger, ICommandsParser commandsParser, ITaskManager taskManager)
+    public NamedPipeCommunicator(ILogger<TaskManager> logger, ICommandsParser commandsParser, ITaskManager taskManager,
+        ArtHoarderTaskFactory artHoarderTaskFactory)
     {
         _logger = logger;
         _commandsParser = commandsParser;
         _taskManager = taskManager;
+        _artHoarderTaskFactory = artHoarderTaskFactory;
     }
 
     public async Task StartCommunicationAsync(CancellationToken cancellationToken)
@@ -67,7 +70,7 @@ public class NamedPipeCommunicator : BackgroundService, INamedPipeCommunicator
             }
 
             var tokenSource = new CancellationTokenSource();
-            var task = ArtHoarderTaskFactory.Create(parsedTuple.path, parsedTuple.verb, streamString,
+            var task = _artHoarderTaskFactory.Create(parsedTuple.path, parsedTuple.verb, streamString,
                 tokenSource.Token);
 
             return parsedTuple.verb.IsParallel

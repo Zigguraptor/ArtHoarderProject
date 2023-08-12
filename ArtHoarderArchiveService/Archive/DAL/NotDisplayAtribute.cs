@@ -1,5 +1,5 @@
 ﻿namespace ArtHoarderArchiveService.Archive.DAL;
 
-public class NotDisplayAttribute : Attribute 
+public class NotDisplayAttribute : Attribute
 {
 }

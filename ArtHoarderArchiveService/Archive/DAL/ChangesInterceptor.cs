@@ -55,7 +55,7 @@ internal class ChangesInterceptor : ISaveChangesInterceptor
     {
         context.ChangeTracker.DetectChanges();
 
-        var timeNow = Time.GetCurrentDateTime();
+        var timeNow = Time.NowUtcDataTime();
         var changesInfo = new List<ChangeInfo>();
         foreach (var entry in context.ChangeTracker.Entries())
         {

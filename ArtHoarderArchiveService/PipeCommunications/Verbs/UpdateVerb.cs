@@ -18,9 +18,10 @@ public class UpdateVerb : BaseVerb
         return Users != null || GalleryUris != null;
     }
 
-    public override void Invoke(IMessageWriter messageWriter, string path, CancellationToken cancellationToken)
+    public override void Invoke(IMessager messager, ArchiveContextFactory archiveContextFactory, string path,
+        CancellationToken cancellationToken)
     {
-        using var context = new ArchiveContext(path);
-        context.UpdateAllGalleriesAsync(messageWriter, OldIncluded, cancellationToken).Wait(cancellationToken);
+        using var context = archiveContextFactory.CreateArchiveContext(path);
+        context.UpdateAllGalleriesAsync(messager, OldIncluded, cancellationToken).Wait(cancellationToken);
     }
 }
