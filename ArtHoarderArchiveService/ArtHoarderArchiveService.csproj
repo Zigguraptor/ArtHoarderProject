@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-ArtHoederArchiveService-28eb158a-237b-4730-9219-5db5c2377594</UserSecretsId>
+    <RootNamespace>ArtHoarderArchiveService</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.51" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.0.1" />
+    <PackageReference Include="System.IO.Hashing" Version="7.0.0" />
+    <PackageReference Include="System.Threading.RateLimiting" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="ArgsParser">
+      <HintPath>ArgsParser.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Archive\Constants\ParsersConfigs\Fa.json" />
+    <None Include="Archive\Constants\ParsersConfigs\W.json" />
+    <None Include="Archive\Constants\ParsersConfigs\Weasyl.json" />
+  </ItemGroup>
+</Project>
