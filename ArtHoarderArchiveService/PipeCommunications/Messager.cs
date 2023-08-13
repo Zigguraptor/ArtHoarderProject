@@ -25,7 +25,7 @@ public class Messager : IMessager
     public Messager(StreamString streamString)
     {
         _streamString = streamString;
-        _updateProgressBarLimiter = new Timer(250);
+        _updateProgressBarLimiter = new Timer(150);
         _updateProgressBarLimiter.AutoReset = false;
         _updateProgressBarLimiter.Elapsed += SendProgressBars;
     }
