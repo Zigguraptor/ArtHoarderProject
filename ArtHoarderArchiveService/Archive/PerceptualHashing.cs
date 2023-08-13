@@ -1,6 +1,6 @@
 ﻿using ArtHoarderArchiveService.Archive.DAL;
 using ArtHoarderArchiveService.Archive.DAL.Entities;
-using ArtHoarderArchiveService.Archive.HashAlgs;
+using ArtHoarderArchiveService.Archive.HashAlgs.fastDCT;
 using ArtHoarderArchiveService.Archive.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,7 +19,7 @@ internal class PerceptualHashing
 
     private static readonly IPerceptualHashAlgorithm[] Algorithms =
     {
-        new CppFastDct()
+        new FastDct()
     };
 
     public static string[] GetAvailableAlgorithms()
@@ -69,9 +69,9 @@ internal class PerceptualHashing
 
     private double[,] CompressImage(Image<Rgb24> image)
     {
-        image.Mutate(x => x.Resize(32, 32));
+        image.Mutate(x => x.Resize(8, 8));
 
-        var grayImageMatrix = new double[32, 32];
+        var grayImageMatrix = new double[8, 8];
         for (var i = 0; i < 32; i++)
         {
             for (var j = 0; j < 32; j++)
