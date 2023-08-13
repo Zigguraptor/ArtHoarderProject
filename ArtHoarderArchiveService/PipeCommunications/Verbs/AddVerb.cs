@@ -66,11 +66,18 @@ public class AddVerb : BaseVerb
     public override void Invoke(IMessager messager, ArchiveContextFactory archiveContextFactory, string path,
         CancellationToken cancellationToken)
     {
-        using var context = archiveContextFactory.CreateArchiveContext(path);
-        if (UserNames != null)
-            AddUsers(messager, context);
-        else
-            AddGalleries(messager, context);
+        var context = archiveContextFactory.CreateArchiveContext(messager, path, this);
+        try
+        {
+            if (UserNames != null)
+                AddUsers(messager, context);
+            else
+                AddGalleries(messager, context);
+        }
+        finally
+        {
+            archiveContextFactory.RealiseContext(path, this);
+        }
     }
 
     private void AddUsers(IMessager statusWriter, ArchiveContext archiveContext)

@@ -15,8 +15,9 @@ public class StatusVerb : BaseVerb
     public override void Invoke(IMessager messager, ArchiveContextFactory archiveContextFactory, string path,
         CancellationToken cancellationToken)
     {
-        using var context = archiveContextFactory.CreateArchiveContext(path);
+        var context = archiveContextFactory.CreateArchiveContext(messager, path, this);
         var fileStateSet = context.GetFileStateSet();
+        archiveContextFactory.RealiseContext(path, this);
         messager.WriteLine(fileStateSet.ToString());
     }
 }

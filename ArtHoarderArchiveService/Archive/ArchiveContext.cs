@@ -22,13 +22,14 @@ public sealed class ArchiveContext : IDisposable
 
     private string MainFilePath => Path.Combine(_workDirectory, Constants.ArchiveMainFilePath);
 
-    public ArchiveContext(string workDirectory, IFileHandler fileHandler, IUniversalParser universalParser)
+    public ArchiveContext(string workDirectory, FileStream fileStream, IFileHandler fileHandler,
+        IUniversalParser universalParser)
     {
         _workDirectory = workDirectory;
+        _mainFile = fileStream;
         _fileHandler = fileHandler;
         _universalParser = universalParser;
 
-        _mainFile = File.Open(MainFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
         _cachedArchiveMainFile = ReadArchiveFile();
     }
 
