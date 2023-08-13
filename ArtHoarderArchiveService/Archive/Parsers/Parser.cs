@@ -187,7 +187,7 @@ internal abstract class Parser
 
     protected void LogWarning(string message)
     {
-        throw new NotImplementedException();
+        Console.WriteLine("OLD LOGGER: " + message);
 
         // _parsHandler.Logger.WarningLog(
         //     $"Class: \"{GetType()}\". Settings for \"{Host}\" {message}");
@@ -195,7 +195,7 @@ internal abstract class Parser
 
     protected void LogError(string message)
     {
-        throw new NotImplementedException();
+        Console.WriteLine("OLD LOGGER: " + message);
 
         // _parsHandler.Logger.ErrorLog(
         //     $"Class: \"{GetType()}\". Settings for \"{Host}\" {message}");
