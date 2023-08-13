@@ -139,13 +139,13 @@ internal class ParsingHandler : IParsHandler
 
     protected virtual void LogWarning(string message)
     {
-        throw new NotImplementedException();
+        Console.WriteLine("OLD LOGGER: "+ message);
         // Logger.WarningLog($"[{GetType()}] {message}");
     }
 
     protected virtual void LogError(string message)
     {
-        throw new NotImplementedException();
+        Console.WriteLine("OLD LOGGER: "+ message);
         // Logger.ErrorLog($"[{GetType()}] {message}");
     }
 }
