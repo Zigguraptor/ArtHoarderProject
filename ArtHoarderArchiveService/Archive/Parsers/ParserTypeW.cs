@@ -86,8 +86,6 @@ internal class ParserTypeW : Parser
             var index = time.LastIndexOf('>') + 1;
             time = time.Substring(index, time.Length - 1 - index);
 
-            Console.WriteLine($"\"{time}\" 120 ParseTypeFa");
-
             if (DateTime.TryParseExact(time, "MMM dd, yyyy hh:mm",
                     CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var dateTime))
             {
