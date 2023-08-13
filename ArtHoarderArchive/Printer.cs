@@ -1,6 +1,4 @@
-﻿using System.Text;
-
-namespace ArtHoarderArchive;
+﻿namespace ArtHoarderArchive;
 
 public static class Printer
 {
@@ -67,7 +65,7 @@ public static class Printer
         value *= LoadingSegments;
 
         var spaceCount = (int)Math.Floor(value);
-        var loadingBar = new string(ProgressChars[ProgressChars.Length], spaceCount);
+        var loadingBar = new string(ProgressChars[^1], spaceCount);
         spaceCount = LoadingSegments - spaceCount - 1;
         value = (value % 1) * ProgressChars.Length;
         loadingBar += ProgressChars[(int)Math.Floor(value)];
