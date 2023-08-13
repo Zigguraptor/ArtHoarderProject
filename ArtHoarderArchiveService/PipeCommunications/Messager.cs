@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Text;
+using System.Text.Json;
 using System.Timers;
 using Timer = System.Timers.Timer;
 
@@ -74,6 +75,7 @@ public class Messager : IMessager
 
     public void WriteLog(string message, LogLevel logLevel)
     {
+        message = LogCommand + Escape(logLevel.ToString(), message);
         WriteLine(LogCommand + logLevel + ' ' + message);
     }
 
@@ -121,5 +123,32 @@ public class Messager : IMessager
         return s.Replace("\"", "\\\"");
     }
 
-    public void Close() => WriteLine(ClosingCommand);
+    private static string Escape(string[] strings)
+    {
+        var sb = new StringBuilder();
+        for (var i = 0; i < strings.Length; i++)
+        {
+            var s = strings[i];
+            sb.Append(Insulator);
+            sb.Append(Escape(s));
+            sb.Append(Insulator);
+            if (i + 1 < strings.Length)
+                sb.Append(Separator);
+        }
+
+        return sb.ToString();
+    }
+
+    private static string Escape(string s1, string s2) => Escape(new[] { s1, s2 });
+
+    public void Close()
+    {
+        if (_upgradePlanned)
+        {
+            _updateProgressBarLimiter.Stop();
+            SendProgressBars(null, null!);
+        }
+
+        Write(ClosingCommand);
+    }
 }
