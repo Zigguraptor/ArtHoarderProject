@@ -23,7 +23,10 @@ public class FileStateSet
         {
             sb.Append("Unregistered files:\n");
             foreach (var fileName in UnregisteredFiles)
+            {
                 sb.Append(fileName);
+                sb.Append('\n');
+            }
         }
         else
         {
@@ -34,22 +37,28 @@ public class FileStateSet
         {
             sb.Append("missing files:\n");
             foreach (var fileName in MissingFiles)
+            {
                 sb.Append(fileName);
+                sb.Append('\n');
+            }
         }
         else
         {
-            sb.Append("No missing files.");
+            sb.Append("No missing files.\n");
         }
 
         if (ChangedFiles.Count > 0)
         {
             sb.Append("Changed files:\n");
             foreach (var fileName in ChangedFiles)
+            {
                 sb.Append(fileName);
+                sb.Append('\n');
+            }
         }
         else
         {
-            sb.Append("No changed files.");
+            sb.Append("No changed files.\n");
         }
 
         return sb.ToString();
