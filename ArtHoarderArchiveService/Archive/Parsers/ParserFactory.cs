@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 using ArtHoarderArchiveService.Archive.Networking;
 using ArtHoarderArchiveService.Archive.Parsers.Settings;
 using ArtHoarderArchiveService.PipeCommunications;
@@ -12,9 +13,11 @@ internal static class ParserFactory
     public static List<ParserSettings> ParsersSettingsList { get; private set; } = null!;
     public static string? UnsupportedTypesReport { get; private set; }
     private static readonly object ConfigsUpdateSyncRoot = new();
+    private static readonly JsonSerializerOptions SerializerOptions;
 
     static ParserFactory()
     {
+        SerializerOptions = new JsonSerializerOptions { WriteIndented = true };
         Directory.CreateDirectory(Constants.ParsersConfigs);
         //Don't forget to update prop "SupportedTypes" when adding types!!!
         SupportedTypes.Add("W", typeof(ParserTypeWSettings));
@@ -143,7 +146,7 @@ internal static class ParserFactory
                 if (!messager.Confirmation("Replace?")) return;
                 File.Delete(fileName);
                 using var fileStream = File.Create(fileName);
-                JsonSerializer.Serialize(fileStream, (object)importedSettings);
+                JsonSerializer.Serialize(fileStream, (object)importedSettings, SerializerOptions);
                 return;
             }
 
@@ -156,7 +159,7 @@ internal static class ParserFactory
                     newPath = Path.Combine(Constants.ParsersConfigs, newFileName + $"({i})" + ".parsercfg");
                     if (File.Exists(newPath)) continue;
                     using var fileStream = File.Create(newPath);
-                    JsonSerializer.Serialize(fileStream, (object)importedSettings);
+                    JsonSerializer.Serialize(fileStream, (object)importedSettings, SerializerOptions);
                     return;
                 }
 
@@ -165,7 +168,7 @@ internal static class ParserFactory
             else
             {
                 using var fileStream = File.Create(newPath);
-                JsonSerializer.Serialize(fileStream, (object)importedSettings);
+                JsonSerializer.Serialize(fileStream, (object)importedSettings, SerializerOptions);
             }
         }
         catch
