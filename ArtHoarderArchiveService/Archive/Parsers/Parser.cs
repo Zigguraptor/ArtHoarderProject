@@ -11,18 +11,18 @@ internal abstract class Parser
     protected string Host { get; init; } = null!;
 
     private readonly IParsHandler _parsHandler;
-    protected readonly IWebDownloader _webDownloader;
+    protected readonly IWebDownloader WebDownloader;
 
     protected Parser(IParsHandler parsHandler, IWebDownloader webDownloader)
     {
         _parsHandler = parsHandler;
-        _webDownloader = webDownloader;
+        WebDownloader = webDownloader;
     }
 
     public async Task LightUpdateGalleryAsync(
         IProgressWriter progressWriter, Uri galleryUri, string dirName, CancellationToken cancellationToken)
     {
-        var doc = _webDownloader.GetHtml(galleryUri, cancellationToken);
+        var doc = WebDownloader.GetHtml(galleryUri, cancellationToken);
         if (doc == null)
         {
             var msg = $"Profile not found on uri: {galleryUri}";
@@ -81,7 +81,7 @@ internal abstract class Parser
         }
         else
         {
-            var doc = _webDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri, cancellationToken);
+            var doc = WebDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri, cancellationToken);
             if (doc == null)
             {
                 var msg = $"Profile not found on uri: {scheduledGalleryUpdateInfo.GalleryUri}";
@@ -137,7 +137,7 @@ internal abstract class Parser
                     var uri = uris[i];
                     if (cancellationToken.IsCancellationRequested) break;
 
-                    var submissionDocument = _webDownloader.GetHtml(uri, cancellationToken);
+                    var submissionDocument = WebDownloader.GetHtml(uri, cancellationToken);
                     progressWriter.Write($"{uri} Loaded");
 
                     if (submissionDocument != null)

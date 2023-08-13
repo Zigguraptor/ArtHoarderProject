@@ -187,7 +187,7 @@ internal class ParserTypeW : Parser
             {
                 try
                 {
-                    var htmlDocument = _webDownloader.GetHtml(new Uri("https:" + nextButton), cancellationToken);
+                    var htmlDocument = WebDownloader.GetHtml(new Uri("https:" + nextButton), cancellationToken);
                     if (htmlDocument == null) break;
                     document = htmlDocument;
                 }
@@ -283,7 +283,7 @@ internal class ParserTypeW : Parser
         if (scheduledGalleryUpdateInfo.LastLoadedPage == null ||
             scheduledGalleryUpdateInfo.FirstLoadedSubmissionUri == null)
         {
-            var profile = _webDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri, cancellationToken);
+            var profile = WebDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri, cancellationToken);
             return GetAllSubmissionLinks(progressWriter, profile, cancellationToken);
         }
 
@@ -295,7 +295,7 @@ internal class ParserTypeW : Parser
             const string msg = "Submissions not found on one of the pages";
             progressWriter.WriteLog(msg, LogLevel.Error);
             LogWarning(msg);
-            var profile = _webDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri, cancellationToken);
+            var profile = WebDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri, cancellationToken);
             return GetAllSubmissionLinks(progressWriter, profile, cancellationToken);
         }
 
@@ -305,7 +305,7 @@ internal class ParserTypeW : Parser
         if (firstOrDefault == null)
         {
             progressWriter.WriteLog("Cached submission link node not found. Reloading Gallery.", LogLevel.Warning);
-            var profile = _webDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri, cancellationToken);
+            var profile = WebDownloader.GetHtml(scheduledGalleryUpdateInfo.GalleryUri, cancellationToken);
             return GetAllSubmissionLinks(progressWriter, profile, cancellationToken);
         }
 
@@ -389,7 +389,7 @@ internal class ParserTypeW : Parser
     {
         // reporter.SetProgressStage("Load subscriptions pages");
         // reporter.Report($"Download \"{uri}\"");
-        var document = _webDownloader.GetHtml(uri, cancellationToken);
+        var document = WebDownloader.GetHtml(uri, cancellationToken);
 
         var currentSubscriptionsPageUri = document?.DocumentNode
             .SelectSingleNode(ParserTypeWSettings.XpathSubscriptions)
@@ -401,7 +401,7 @@ internal class ParserTypeW : Parser
 
         currentSubscriptionsPageUri = "https://" + Host + currentSubscriptionsPageUri;
         // reporter.Report($"Download \"{currentSubscriptionsPageUri}\"");
-        var subscriptionsPage = _webDownloader.GetHtml(new Uri(currentSubscriptionsPageUri), cancellationToken);
+        var subscriptionsPage = WebDownloader.GetHtml(new Uri(currentSubscriptionsPageUri), cancellationToken);
 
         if (subscriptionsPage == null) return GetSubscriptionsLinks(pages);
 
@@ -438,7 +438,7 @@ internal class ParserTypeW : Parser
             }
 
             // reporter.Report($"Download \"{currentSubscriptionsPageUri}\"");
-            var page = _webDownloader.GetHtml(nextUri, cancellationToken);
+            var page = WebDownloader.GetHtml(nextUri, cancellationToken);
             if (page == null) break;
 
             pages.Push(page);
@@ -479,7 +479,7 @@ internal class ParserTypeW : Parser
         var uri = GetGalleryUri(profileDocument);
         if (uri == null) return null;
 
-        var doc = _webDownloader.GetHtml(uri, cancellationToken);
+        var doc = WebDownloader.GetHtml(uri, cancellationToken);
         return doc;
     }
 
@@ -508,7 +508,7 @@ internal class ParserTypeW : Parser
         var next = page.DocumentNode.SelectSingleNode(ParserTypeWSettings.XpathNextPageButton);
         if (next != null && next.InnerText.Contains("Next"))
         {
-            nextPage = _webDownloader.GetHtml(new Uri("https://" + Host + next.Attributes.First().Value),
+            nextPage = WebDownloader.GetHtml(new Uri("https://" + Host + next.Attributes.First().Value),
                 cancellationToken);
             return true;
         }
