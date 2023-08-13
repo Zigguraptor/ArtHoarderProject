@@ -10,16 +10,7 @@ public static class Printer
     private const int LoadingSegments = 10;
 
     private static readonly char[] ProgressChars =
-    {
-        '\u2588',
-        '\u2589',
-        '\u258A',
-        '\u258B',
-        '\u258C',
-        '\u258D',
-        '\u258E',
-        '\u258F'
-    };
+        { '░', '▒', '▓', '█' };
 
     private static readonly int Positions = ProgressChars.Length * LoadingSegments;
 
