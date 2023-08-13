@@ -11,9 +11,9 @@ await NamedPipeCommunicator.SendCommandAsync(CommandCreator.Create(args), new Ca
 
 async Task NoArgsMode()
 {
+    Console.WriteLine("Enter the command");
     while (true)
     {
-        Console.WriteLine("Enter the command");
         Console.Write(">");
 
         var s = Console.ReadLine();
