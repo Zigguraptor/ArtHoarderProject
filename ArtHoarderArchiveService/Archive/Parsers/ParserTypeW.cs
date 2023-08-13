@@ -108,8 +108,7 @@ internal class ParserTypeW : Parser
         var node = profileDocument.DocumentNode.SelectSingleNode(ParserTypeWSettings.XpathProfileStatus);
         if (node != null)
         {
-            var text = node.InnerHtml;
-            return text[..text.LastIndexOf('|')];
+            return node.InnerHtml; //TODO add regex
         }
 
         LogWarning("Profile status not found");
@@ -129,9 +128,9 @@ internal class ParserTypeW : Parser
     {
         var node = profileDocument.DocumentNode.SelectSingleNode(ParserTypeWSettings.XpathProfileIcon);
 
-        var uri = node?.Attributes[ParserTypeWSettings.UriIconAttributeName]?.Value;
-        if (uri != null && uri.Length > 1)
-            return new Uri("https:" + uri);
+        var uriText = node?.Attributes[ParserTypeWSettings.UriIconAttributeName]?.Value;
+        if (uriText is { Length: > 1 } && Uri.TryCreate(uriText, UriKind.Absolute, out var uri))
+            return uri;
 
         return null;
     }
