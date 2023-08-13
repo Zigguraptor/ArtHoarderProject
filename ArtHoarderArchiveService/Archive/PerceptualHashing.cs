@@ -19,7 +19,7 @@ internal class PerceptualHashing
 
     private static readonly IPerceptualHashAlgorithm[] Algorithms =
     {
-        new FastDct()
+        new CppFastDct()
     };
 
     public static string[] GetAvailableAlgorithms()

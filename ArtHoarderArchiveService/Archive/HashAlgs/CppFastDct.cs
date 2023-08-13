@@ -3,7 +3,7 @@ using ArtHoarderArchiveService.Archive.Infrastructure;
 
 namespace ArtHoarderArchiveService.Archive.HashAlgs;
 
-public class FastDct : IPerceptualHashAlgorithm
+public class CppFastDct : IPerceptualHashAlgorithm
 {
     [DllImport("PerceptualHashing.dll")]
     static extern void calculate_dct_hash(double[,] matrix, byte[] output);
