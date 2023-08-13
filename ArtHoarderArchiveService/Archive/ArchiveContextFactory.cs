@@ -23,11 +23,12 @@ public class ArchiveContextFactory
 
     private FileStream OpenFile(IMessager progressWriter, string path)
     {
+        var  mainFilePath = Path.Combine(path, Constants.ArchiveMainFilePath);
         for (var t = 0; t < TimeOut; t++)
         {
             try
             {
-                var fileStream = File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                var fileStream = File.Open(mainFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
                 return fileStream;
             }
             catch

@@ -20,8 +20,6 @@ public sealed class ArchiveContext : IDisposable
 
     private ArchiveMainFile _cachedArchiveMainFile;
 
-    private string MainFilePath => Path.Combine(_workDirectory, Constants.ArchiveMainFilePath);
-
     public ArchiveContext(string workDirectory, FileStream fileStream, IFileHandler fileHandler,
         IUniversalParser universalParser)
     {
