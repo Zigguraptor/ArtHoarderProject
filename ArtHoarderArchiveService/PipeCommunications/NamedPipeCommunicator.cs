@@ -89,7 +89,7 @@ public class NamedPipeCommunicator : BackgroundService, INamedPipeCommunicator
         var tasks = new Task[NumThreads];
         for (var i = 0; i < NumThreads; i++)
             tasks[i] = StartCommunicationAsync(stoppingToken);
-        _logger.LogInformation($"NamedPipeCommunicator started in {NumThreads} thread.");
+        _logger.LogInformation($"NamedPipeCommunicator started in {NumThreads} threads.");
 
         return Task.CompletedTask;
     }
