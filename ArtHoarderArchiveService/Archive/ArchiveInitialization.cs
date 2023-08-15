@@ -19,13 +19,13 @@ internal static class ArchiveInitialization
         return CreationCode.Ok;
     }
 
-    private static void CreateSystemFolders(string workDirectory)
+    public static void CreateSystemFolders(string workDirectory)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(workDirectory, Constants.MainDbPath)) ??
                                   workDirectory);
         Directory.CreateDirectory(
             Path.GetDirectoryName(Path.Combine(workDirectory, Constants.ChangesAuditDbPath)) ?? workDirectory);
-
+        Directory.CreateDirectory(Path.Combine(workDirectory, Constants.Temp));
         Directory.CreateDirectory(Path.Combine(workDirectory, Constants.DownloadedMediaDirectory));
         Directory.CreateDirectory(Path.Combine(workDirectory, Constants.PHashDbDirectory));
     }

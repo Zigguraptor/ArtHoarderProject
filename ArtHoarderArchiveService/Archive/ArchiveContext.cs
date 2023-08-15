@@ -29,6 +29,7 @@ public sealed class ArchiveContext : IDisposable
         _universalParser = universalParser;
 
         _cachedArchiveMainFile = ReadArchiveFile();
+        ArchiveInitialization.CreateSystemFolders(workDirectory);
     }
 
     public void Dispose()
