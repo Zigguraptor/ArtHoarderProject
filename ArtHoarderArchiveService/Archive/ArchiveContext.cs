@@ -129,8 +129,6 @@ public sealed class ArchiveContext : IDisposable
             return;
         }
 
-        directoryName ??= galleryProfile.OwnerName;
-
         await _universalParser
             .LightUpdateGalleryAsync(progressWriter, galleryUri, directoryName, cancellationToken)
             .ConfigureAwait(false);

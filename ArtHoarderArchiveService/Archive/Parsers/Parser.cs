@@ -20,7 +20,7 @@ internal abstract class Parser
     }
 
     public async Task LightUpdateGalleryAsync(
-        IProgressWriter progressWriter, Uri galleryUri, string dirName, CancellationToken cancellationToken)
+        IProgressWriter progressWriter, Uri galleryUri, string? dirName, CancellationToken cancellationToken)
     {
         var doc = WebDownloader.GetHtml(galleryUri, cancellationToken);
         if (doc == null)
@@ -66,7 +66,7 @@ internal abstract class Parser
 
     public async Task ScheduledUpdateGalleryAsync(IProgressWriter progressWriter,
         ScheduledGalleryUpdateInfo scheduledGalleryUpdateInfo, CancellationToken cancellationToken,
-        string directoryName)
+        string? directoryName)
     {
         if (scheduledGalleryUpdateInfo.LastLoadedPage != null)
         {
@@ -102,7 +102,7 @@ internal abstract class Parser
     }
 
     private async Task<Uri?> UpdateSubmissionsAsync(IProgressWriter progressWriter, List<Uri> uris,
-        Uri sourceGalleryUri, string dirName, CancellationToken cancellationToken)
+        Uri sourceGalleryUri, string? dirName, CancellationToken cancellationToken)
     {
         Uri? lastSuccessfulSubmission = null; //TODO
         var channel = Channel.CreateBounded<(HtmlDocument htmlDocument, Uri uri)>(new BoundedChannelOptions(uris.Count)

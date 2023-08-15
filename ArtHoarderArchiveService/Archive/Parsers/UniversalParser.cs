@@ -19,7 +19,7 @@ public sealed class UniversalParser : IUniversalParser // LordParser
     }
 
     public Task LightUpdateGalleryAsync(
-        IProgressWriter progressWriter, Uri galleryUri, string directoryName, CancellationToken cancellationToken)
+        IProgressWriter progressWriter, Uri galleryUri, string? directoryName, CancellationToken cancellationToken)
     {
         var parser = GetParser(galleryUri);
         if (parser == null)
@@ -56,7 +56,7 @@ public sealed class UniversalParser : IUniversalParser // LordParser
 
     public Task ScheduledUpdateGalleryAsync(IProgressWriter progressWriter,
         ScheduledGalleryUpdateInfo scheduledGalleryUpdateInfo, CancellationToken cancellationToken,
-        string directoryName)
+        string? directoryName)
     {
         var parser = GetParser(scheduledGalleryUpdateInfo.GalleryUri);
         if (parser == null)

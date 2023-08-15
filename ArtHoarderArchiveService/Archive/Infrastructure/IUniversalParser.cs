@@ -6,7 +6,7 @@ namespace ArtHoarderArchiveService.Archive.Infrastructure;
 public interface IUniversalParser
 {
     public Task LightUpdateGalleryAsync
-        (IProgressWriter progressWriter, Uri galleryUri, string directoryName, CancellationToken cancellationToken);
+        (IProgressWriter progressWriter, Uri galleryUri, string? directoryName, CancellationToken cancellationToken);
 
     public List<Uri>? GetSubscriptions(Uri uri, CancellationToken cancellationToken);
     public string? TryGetUserName(Uri uri);
