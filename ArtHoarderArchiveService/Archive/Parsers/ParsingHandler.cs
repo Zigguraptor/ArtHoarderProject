@@ -118,7 +118,11 @@ internal class ParsingHandler : IParsHandler
     public void RegScheduledGalleryUpdateInfo(ScheduledGalleryUpdateInfo scheduledGalleryUpdateInfo)
     {
         using var context = new CacheDbContext(_workDirectory);
-        context.Update(scheduledGalleryUpdateInfo);
+        if (context.ScheduledUpdateGalleries.Any(i => i.GalleryUri == scheduledGalleryUpdateInfo.GalleryUri))
+            context.ScheduledUpdateGalleries.Update(scheduledGalleryUpdateInfo);
+        else
+            context.ScheduledUpdateGalleries.Add(scheduledGalleryUpdateInfo);
+
         TrySaveChanges(context);
     }
 
