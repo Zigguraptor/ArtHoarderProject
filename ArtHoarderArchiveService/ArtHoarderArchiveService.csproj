@@ -24,10 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Archive\HashAlgs\fastDCT\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Update="Constants\Consts.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
