@@ -23,7 +23,13 @@ public class ArchiveContextFactory
 
     private FileStream OpenFile(IMessager progressWriter, string path)
     {
-        var  mainFilePath = Path.Combine(path, Constants.ArchiveMainFilePath);
+        var mainFilePath = Path.Combine(path, Constants.ArchiveMainFilePath);
+        if (!File.Exists(mainFilePath))
+        {
+            progressWriter.WriteLine("Archive not found.");
+            throw new Exception("Archive not found.");
+        }
+
         for (var t = 0; t < TimeOut; t++)
         {
             try
