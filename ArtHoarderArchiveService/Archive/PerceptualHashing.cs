@@ -72,9 +72,9 @@ internal class PerceptualHashing
         image.Mutate(x => x.Resize(8, 8));
 
         var grayImageMatrix = new double[8, 8];
-        for (var i = 0; i < 32; i++)
+        for (var i = 0; i < 8; i++)
         {
-            for (var j = 0; j < 32; j++)
+            for (var j = 0; j < 8; j++)
             {
                 var pixel = image[i, j];
                 grayImageMatrix[i, j] = ((double)pixel.R + pixel.G + pixel.B) / 3d;
