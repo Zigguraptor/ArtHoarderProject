@@ -130,6 +130,9 @@ internal class ParsingHandler : IParsHandler
         }
         catch (Exception e)
         {
+            if (Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") == "Development")
+                throw;
+
             LogError(e.ToString());
             return false;
         }
@@ -139,13 +142,13 @@ internal class ParsingHandler : IParsHandler
 
     protected virtual void LogWarning(string message)
     {
-        Console.WriteLine("OLD LOGGER: "+ message);
+        Console.WriteLine("OLD LOGGER: " + message);
         // Logger.WarningLog($"[{GetType()}] {message}");
     }
 
     protected virtual void LogError(string message)
     {
-        Console.WriteLine("OLD LOGGER: "+ message);
+        Console.WriteLine("OLD LOGGER: " + message);
         // Logger.ErrorLog($"[{GetType()}] {message}");
     }
 }
