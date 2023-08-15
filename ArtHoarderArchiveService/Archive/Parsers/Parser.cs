@@ -47,7 +47,7 @@ internal abstract class Parser
             GalleryUri = galleryUri,
             LastFullUpdate = _parsHandler.LastFullUpdate(galleryUri),
             Host = galleryUri.Host,
-            FirstLoadedSubmissionUri = linksTuple.submissions[linksTuple.submissions.Count],
+            FirstLoadedSubmissionUri = linksTuple.submissions.Count > 0 ? linksTuple.submissions[^1] : null,
             LastLoadedPage = linksTuple.lastPage,
         };
         _parsHandler.RegScheduledGalleryUpdateInfo(scheduledGalleryUpdateInfo);
