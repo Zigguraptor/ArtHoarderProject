@@ -40,9 +40,13 @@ internal class ParsingHandler : IParsHandler
 
         if (galleryProfile.IconFileUri != null)
         {
-            var tuple = _fileHandler.CheckOrSaveFile(_workDirectory, saveFolder, galleryProfile.IconFileUri,
-                cancellationToken);
-            galleryProfile.IconFileGuid = tuple.fileMetaInfo.Guid;
+            var responseMessage = _webDownloader.Get(galleryProfile.IconFileUri, cancellationToken);
+            var stream = responseMessage.Content.ReadAsStream(cancellationToken);
+            var fileName = galleryProfile.IconFileUri.AbsoluteUri.Split('/', StringSplitOptions.RemoveEmptyEntries)[^1];
+
+            var fileMetaInfo =
+                _fileHandler.SaveFileIfNotExists(stream, _workDirectory, saveFolder, fileName, cancellationToken);
+            galleryProfile.IconFileGuid = fileMetaInfo.Guid;
 
             localGalleryProfile.Update(galleryProfile);
             return TrySaveChanges(context);
@@ -63,43 +67,36 @@ internal class ParsingHandler : IParsHandler
         if (localSubmission == null)
         {
             context.Submissions.Add(new Submission(parsedSubmission));
-            TrySaveChanges(context);
-            return;
+        }
+        else
+        {
+            localSubmission.Update(parsedSubmission);
         }
 
-        if (parsedSubmission.SubmissionFileUris.Count > 0)
+        if (!TrySaveChanges(context)) return;
+
+        foreach (var fileUri in parsedSubmission.SubmissionFileUris)
         {
-            if (parsedSubmission.SubmissionFileUris.Count == 1)
+            var responseMessage = _webDownloader.Get(fileUri, cancellationToken);
+            var stream = responseMessage.Content.ReadAsStream(cancellationToken);
+            var fileName = fileUri.AbsoluteUri.Split('/', StringSplitOptions.RemoveEmptyEntries)[^1];
+
+            var fileMetaInfo =
+                _fileHandler.SaveFileIfNotExists(stream, _workDirectory, saveFolder, fileName, cancellationToken);
+
+            var localFileMetaInfo = context.SubmissionFileMetaInfos.Find(fileUri, fileMetaInfo.Guid);
+            if (localFileMetaInfo == null)
             {
-                var tuple = _fileHandler.CheckOrSaveFile(_workDirectory, saveFolder,
-                    parsedSubmission.SubmissionFileUris[0], cancellationToken);
-                AddOrUpdateSubmissionFileLink(parsedSubmission.Uri, tuple.fileMetaInfo.Guid,
-                    parsedSubmission.SubmissionFileUris[0]);
-            }
-
-            var response =
-                _fileHandler.CheckOrSaveFiles(_workDirectory, saveFolder, parsedSubmission.SubmissionFileUris,
-                    cancellationToken);
-            foreach (var valueTuple in response)
-                AddOrUpdateSubmissionFileLink(parsedSubmission.Uri, valueTuple.fileMetaInfo.Guid, valueTuple.fileUri);
-        }
-
-        localSubmission.Update(parsedSubmission);
-        TrySaveChanges(context);
-
-        void AddOrUpdateSubmissionFileLink(Uri uri, Guid guid, Uri fileUri)
-        {
-            var local = context.SubmissionFileMetaInfos.Find(uri, guid);
-            if (local == null)
-            {
-                context.SubmissionFileMetaInfos.Add(new SubmissionFileMetaInfo(uri, guid, fileUri));
+                context.SubmissionFileMetaInfos.Add(new SubmissionFileMetaInfo(fileUri, fileMetaInfo.Guid, fileUri));
             }
             else
             {
-                if (local.FileUri.ToString() != fileUri.ToString())
-                    local.FileUri = fileUri;
+                if (localFileMetaInfo.FileUri.ToString() != fileUri.ToString())
+                    localFileMetaInfo.FileUri = fileUri;
             }
         }
+
+        TrySaveChanges(context);
     }
 
     public DateTime? LastFullUpdate(Uri galleryUri)
