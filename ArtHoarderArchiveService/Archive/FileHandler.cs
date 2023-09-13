@@ -1,9 +1,7 @@
 ﻿using System.IO.Hashing;
-using System.Net.Http.Headers;
 using ArtHoarderArchiveService.Archive.DAL;
 using ArtHoarderArchiveService.Archive.DAL.Entities;
 using ArtHoarderArchiveService.Archive.Infrastructure;
-using ArtHoarderArchiveService.Archive.Networking;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArtHoarderArchiveService.Archive;
@@ -11,12 +9,10 @@ namespace ArtHoarderArchiveService.Archive;
 internal class FileHandler : IFileHandler
 {
     private const int FileNameLimit = 1000;
-    private readonly IWebDownloader _webDownloader;
     private readonly PerceptualHashing _perceptualHashing;
 
-    public FileHandler(IWebDownloader webDownloader, string workDirectory)
+    public FileHandler(string workDirectory)
     {
-        _webDownloader = webDownloader;
         _perceptualHashing = new PerceptualHashing(workDirectory);
     }
 

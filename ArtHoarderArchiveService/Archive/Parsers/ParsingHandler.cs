@@ -1,5 +1,6 @@
 ﻿using ArtHoarderArchiveService.Archive.DAL;
 using ArtHoarderArchiveService.Archive.DAL.Entities;
+using ArtHoarderArchiveService.Archive.Networking;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArtHoarderArchiveService.Archive.Parsers;
@@ -7,12 +8,15 @@ namespace ArtHoarderArchiveService.Archive.Parsers;
 internal class ParsingHandler : IParsHandler
 {
     private readonly ILogger<ParsingHandler> _logger;
+    private readonly IWebDownloader _webDownloader;
     private readonly FileHandler _fileHandler;
     private readonly string _workDirectory;
 
-    public ParsingHandler(ILogger<ParsingHandler> logger, FileHandler fileHandler, string workDirectory)
+    public ParsingHandler(ILogger<ParsingHandler> logger, IWebDownloader webDownloader, FileHandler fileHandler,
+        string workDirectory)
     {
         _logger = logger;
+        _webDownloader = webDownloader;
         _fileHandler = fileHandler;
         _workDirectory = workDirectory;
     }
