@@ -55,8 +55,9 @@ internal class ParserTypeW : Parser
     protected override ParsedSubmission GetSubmission(HtmlDocument submissionDocument, Uri uri, Uri sourceGallery,
         CancellationToken cancellationToken)
     {
-        return new ParsedSubmission(uri, sourceGallery,
-            GetSubmissionFileUris(submissionDocument, uri, cancellationToken))
+        var fileUris = GetSubmissionFileUris(submissionDocument, uri, cancellationToken);
+        
+        return new ParsedSubmission(uri, sourceGallery, fileUris)
         {
             Uri = uri,
             SourceGalleryUri = sourceGallery,
