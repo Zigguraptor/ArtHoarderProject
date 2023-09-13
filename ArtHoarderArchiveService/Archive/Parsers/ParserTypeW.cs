@@ -167,8 +167,7 @@ internal class ParserTypeW : Parser
             {
                 try
                 {
-                    result.Add(new Uri(
-                        "https:" + node.Attributes[ParserTypeWSettings.XpathSubmissionFileSrcAttribute].Value));
+                    result.Add(new Uri(node.Attributes[ParserTypeWSettings.XpathSubmissionFileSrcAttribute].Value));
                 }
                 catch (Exception e)
                 {
