@@ -56,7 +56,7 @@ internal class ParserTypeW : Parser
         CancellationToken cancellationToken)
     {
         var fileUris = GetSubmissionFileUris(submissionDocument, uri, cancellationToken);
-        
+
         return new ParsedSubmission(uri, sourceGallery, fileUris)
         {
             Uri = uri,

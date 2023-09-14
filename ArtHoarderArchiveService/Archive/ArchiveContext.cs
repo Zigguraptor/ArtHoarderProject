@@ -119,8 +119,7 @@ public sealed class ArchiveContext : IDisposable
 
 
     public async Task LightUpdateGalleryAsync(IProgressWriter progressWriter, Uri galleryUri,
-        CancellationToken cancellationToken,
-        string? directoryName = null)
+        CancellationToken cancellationToken, string? directoryName = null)
     {
         using var context = new MainDbContext(_workDirectory);
         var galleryProfile =
