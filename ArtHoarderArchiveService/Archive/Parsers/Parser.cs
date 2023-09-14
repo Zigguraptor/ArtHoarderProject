@@ -105,15 +105,18 @@ internal abstract class Parser
         Uri sourceGalleryUri, string? dirName, CancellationToken cancellationToken)
     {
         Uri? lastSuccessfulSubmission = null; //TODO
-        var channel = Channel.CreateBounded<(HtmlDocument htmlDocument, Uri uri)>(new BoundedChannelOptions(uris.Count)
-        {
-            SingleReader = false,
-            SingleWriter = true
-        });
+        var channel = Channel.CreateBounded<(HtmlDocument htmlDocument, Uri uri)>(
+            new BoundedChannelOptions(Environment.ProcessorCount)
+            {
+                SingleReader = false,
+                SingleWriter = true
+            });
 
-        var producingTask = ProduceAsync(channel.Writer);
-        var consumingTask = ConsumeAsync(channel.Reader);
-        await Task.WhenAll(producingTask, consumingTask);
+        var tasks = new List<Task>();
+        for (var i = 0; i < Environment.ProcessorCount - 1; i++)
+            tasks.Add(ConsumeAsync(channel.Reader));
+        tasks.Add(ProduceAsync(channel.Writer));
+        await Task.WhenAll(tasks);
 
         return lastSuccessfulSubmission;
 
