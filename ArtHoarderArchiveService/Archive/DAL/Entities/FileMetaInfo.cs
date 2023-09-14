@@ -36,4 +36,10 @@ public class FileMetaInfo
             return result;
         }
     }
+
+    public void Update(FileMetaInfo fileMetaInfo)
+    {
+        if (LocalFilePath != fileMetaInfo.LocalFilePath)
+            LocalFilePath = fileMetaInfo.LocalFilePath;
+    }
 }
