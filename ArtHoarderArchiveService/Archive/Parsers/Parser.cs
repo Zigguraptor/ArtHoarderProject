@@ -121,10 +121,18 @@ internal abstract class Parser
         {
             await foreach (var tuple in reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                progressWriter.UpdateBar(tuple.uri.ToString());
-                _parsHandler.RegisterSubmission(
-                    GetSubmission(tuple.htmlDocument, tuple.uri, sourceGalleryUri, cancellationToken),
-                    dirName, cancellationToken);
+                try
+                {
+                    progressWriter.UpdateBar(tuple.uri.ToString());
+                    _parsHandler.RegisterSubmission(
+                        GetSubmission(tuple.htmlDocument, tuple.uri, sourceGalleryUri, cancellationToken),
+                        dirName, cancellationToken);
+                    progressWriter.Write($"{tuple.uri} Loaded");
+                }
+                catch (Exception e)
+                {
+                    LogError($"Register Submission error {tuple.uri}\n{e}");
+                }
             }
         }
 
