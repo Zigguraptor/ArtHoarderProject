@@ -63,10 +63,16 @@ internal class ParsingHandler : IParsHandler
             return;
 
         using var context = new MainDbContext(_workDirectory);
-        var localSubmission = context.Submissions.Find(parsedSubmission.Uri);
+        var localSubmission = context.Submissions.Include(s => s.FileMetaInfos)
+            .FirstOrDefault(s => s.Uri == parsedSubmission.Uri);
+
         if (localSubmission == null)
         {
-            context.Submissions.Add(new Submission(parsedSubmission));
+            localSubmission = new Submission(parsedSubmission)
+            {
+                FileMetaInfos = new List<FileMetaInfo>()
+            };
+            context.Submissions.Add(localSubmission);
         }
         else
         {
@@ -74,29 +80,50 @@ internal class ParsingHandler : IParsHandler
         }
 
         if (!TrySaveChanges(context)) return;
+        if (parsedSubmission.SubmissionFileUris.Count <= 0) return;
 
-        foreach (var fileUri in parsedSubmission.SubmissionFileUris)
+        var fileMetaInfos = ProcessFiles(parsedSubmission, saveFolder, cancellationToken);
+        UpdateFileMetaInfos(localSubmission.FileMetaInfos, fileMetaInfos);
+        TrySaveChanges(context);
+    }
+
+    private FileMetaInfo[] ProcessFiles(ParsedSubmission parsedSubmission, string? saveFolder,
+        CancellationToken cancellationToken)
+    {
+        var fileUris = parsedSubmission.SubmissionFileUris;
+        var fileMetaInfos = new FileMetaInfo[fileUris.Count];
+
+        for (var i = 0; i < fileUris.Count; i++)
         {
+            var fileUri = fileUris[i];
             var responseMessage = _webDownloader.Get(fileUri, cancellationToken);
             var stream = responseMessage.Content.ReadAsStream(cancellationToken);
             var fileName = fileUri.AbsoluteUri.Split('/', StringSplitOptions.RemoveEmptyEntries)[^1];
-
             var fileMetaInfo =
                 _fileHandler.SaveFileIfNotExists(stream, _workDirectory, saveFolder, fileName, cancellationToken);
 
-            var localFileMetaInfo = context.SubmissionFileMetaInfos.Find(fileUri, fileMetaInfo.Guid);
-            if (localFileMetaInfo == null)
+            if (cancellationToken.IsCancellationRequested) return fileMetaInfos;
+            fileMetaInfos[i] = fileMetaInfo;
+        }
+
+        return fileMetaInfos;
+    }
+
+    private static void UpdateFileMetaInfos(ICollection<FileMetaInfo> localFileMetaInfos,
+        IEnumerable<FileMetaInfo> newFileMetaInfos)
+    {
+        foreach (var fileMetaInfo in newFileMetaInfos)
+        {
+            var localInfo = localFileMetaInfos.FirstOrDefault(i => i.Guid == fileMetaInfo.Guid);
+            if (localInfo != null)
             {
-                context.SubmissionFileMetaInfos.Add(new SubmissionFileMetaInfo(fileUri, fileMetaInfo.Guid, fileUri));
+                localInfo.Update(fileMetaInfo);
             }
             else
             {
-                if (localFileMetaInfo.FileUri.ToString() != fileUri.ToString())
-                    localFileMetaInfo.FileUri = fileUri;
+                localFileMetaInfos.Add(fileMetaInfo);
             }
         }
-
-        TrySaveChanges(context);
     }
 
     public DateTime? LastFullUpdate(Uri galleryUri)
