@@ -145,8 +145,8 @@ internal abstract class Parser
                     var uri = uris[i];
                     if (cancellationToken.IsCancellationRequested) break;
 
+                    progressWriter.Write($"{uri} Extracting");
                     var submissionDocument = WebDownloader.GetHtml(uri, cancellationToken);
-                    progressWriter.Write($"{uri} Loaded");
 
                     if (submissionDocument != null)
                     {
