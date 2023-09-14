@@ -86,11 +86,14 @@ public sealed class ArchiveContext : IDisposable
         }
         else
         {
-            var progressBar = statusWriter.CreateNewProgressBar("", groups.Count(),
-                "All galleries update. Only new submissions.");
+            if (groups.Any())
+            {
+                var progressBar = statusWriter.CreateNewProgressBar("", groups.Count(),
+                    "All galleries update. Only new submissions.");
 
-            await Parallel.ForEachAsync(groups, cancellationToken,
-                (group, _) => LightUpdateGroupAsync(progressBar, group, cancellationToken)).ConfigureAwait(false);
+                await Parallel.ForEachAsync(groups, cancellationToken,
+                    (group, _) => LightUpdateGroupAsync(progressBar, group, cancellationToken)).ConfigureAwait(false);
+            }
         }
     }
 
