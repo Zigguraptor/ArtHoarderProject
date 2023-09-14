@@ -220,7 +220,14 @@ public sealed class ArchiveContext : IDisposable
         if (names == null) throw new ArgumentNullException(nameof(names));
         foreach (var uri in uris)
         {
-            names.Add(_universalParser.TryGetUserName(uri) ?? string.Empty); //TODO string.Empty is ok? 
+            var s = _universalParser.TryGetUserName(uri);
+            if (s == null)
+            {
+                statusWriter.WriteLine($"Could not determine username. {uri}");
+                s = string.Empty;
+            }
+
+            names.Add(s);
         }
 
         TryAddNewGalleries(statusWriter, uris, names); //TODO
