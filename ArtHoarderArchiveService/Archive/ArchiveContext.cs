@@ -68,7 +68,7 @@ public sealed class ArchiveContext : IDisposable
                 "All galleries update stage 1/2(newest)");
 
             await Parallel.ForEachAsync(groups, cancellationToken,
-                (group, _) => LightUpdateGroupAsync(progressBar, group, cancellationToken)).ConfigureAwait(false);
+                (group, _) => LightUpdateGroupAsync(progressBar, group, cancellationToken));
 
             progressBar = statusWriter.CreateNewProgressBar("", groups.Count(),
                 "All galleries update stage 2/2(old)");
