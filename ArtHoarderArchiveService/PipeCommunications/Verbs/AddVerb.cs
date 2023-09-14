@@ -53,16 +53,15 @@ public class AddVerb : BaseVerb
             return false;
         }
 
-        for (var i = 1; i < Gallery.Count; i += 2)
+        for (var i = 0; i < Gallery.Count; i += 2)
         {
-            if (!Uri.TryCreate(Gallery[i], UriKind.Absolute, out _)) continue;
-
-            //TODO
-            errors.Add("");
-            return false;
+            if (!Uri.TryCreate(Gallery[i], UriKind.Absolute, out _))
+            {
+                errors.Add($"\"{Gallery[i]}\" is not uri.");
+            }
         }
 
-        return true;
+        return errors.Any();
     }
 
     public override void Invoke(IMessager messager, ArchiveContextFactory archiveContextFactory, string path,
@@ -112,7 +111,7 @@ public class AddVerb : BaseVerb
 
         var uris = new List<Uri>();
 
-        for (var i = 1; i < Gallery.Count; i += 2)
+        for (var i = 0; i < Gallery.Count; i += 2)
         {
             if (Uri.TryCreate(Gallery[i], UriKind.Absolute, out var uri))
             {
@@ -125,7 +124,7 @@ public class AddVerb : BaseVerb
         }
 
         var names = new List<string>(uris.Count);
-        for (var i = 0; i < Gallery.Count; i += 2)
+        for (var i = 1; i < Gallery.Count; i += 2)
         {
             names.Add(Gallery[i]);
         }
