@@ -9,7 +9,6 @@ internal sealed class MainDbContext : DbContext
     public DbSet<GalleryProfile> GalleryProfiles { get; set; } = null!;
     public DbSet<Submission> Submissions { get; set; } = null!;
     public DbSet<FileMetaInfo> FilesMetaInfos { get; set; } = null!;
-    public DbSet<SubmissionFileMetaInfo> SubmissionFileMetaInfos { get; set; } = null!;
     public DbSet<SubmissionComment> SubmissionComments { get; set; } = null!;
     public DbSet<ProfileComment> ProfileComments { get; set; } = null!;
 
