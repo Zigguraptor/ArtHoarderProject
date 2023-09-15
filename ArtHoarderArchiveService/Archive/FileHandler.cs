@@ -19,8 +19,6 @@ internal class FileHandler : IFileHandler
     public FileMetaInfo SaveFileIfNotExists(Stream fileStream, string workDirectory, string? localDirectoryName,
         string fileName, CancellationToken cancellationToken)
     {
-        localDirectoryName ??= Constants.DefaultOtherDirectory;
-
         var xxHash64 = new XxHash64();
 
         if (cancellationToken.IsCancellationRequested)
@@ -36,11 +34,15 @@ internal class FileHandler : IFileHandler
         if (fileMetaInfo != null)
             return fileMetaInfo;
 
-        var localPath = fileName;
-        localPath = Path.Combine(workDirectory, Constants.DownloadedMediaDirectory, localDirectoryName, localPath);
+        localDirectoryName ??= Constants.DefaultOtherDirectory;
+        var localPath = Path.Combine(workDirectory, Constants.DownloadedMediaDirectory, localDirectoryName);
+
+        Directory.CreateDirectory(localPath);
+        localPath = GetFreeFilePath(localPath, fileName);
 
         fileStream.Position = 0;
-        localPath = SaveFile(fileStream, localPath);
+        using var localFileStream = File.Create(localPath);
+        fileStream.CopyTo(localFileStream);
 
         var guid = Guid.NewGuid();
         fileMetaInfo = new FileMetaInfo
@@ -59,29 +61,24 @@ internal class FileHandler : IFileHandler
         return fileMetaInfo;
     }
 
-    private string SaveFile(Stream sourceStream, string path)
+    private static string GetFreeFilePath(string directory, string fileName)
     {
-        path = GetFreeFileName(path);
-        Directory.CreateDirectory(Path.GetDirectoryName(path) ?? string.Empty);
+        var newPath = Path.Combine(directory, fileName);
 
-        using var localFileStream = File.Create(path);
-        sourceStream.CopyTo(localFileStream);
-        return path;
-    }
+        if (!File.Exists(newPath)) return newPath;
 
-    private static string GetFreeFileName(string startPath)
-    {
-        var newPath = startPath;
+        var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+        var extension = Path.GetExtension(fileName);
+
         for (var i = 1; File.Exists(newPath) && i < FileNameLimit; i++)
-        {
-            newPath = Path.Combine(Path.GetDirectoryName(startPath) ?? string.Empty,
-                Path.GetFileNameWithoutExtension(startPath) + $"({i:D})" + Path.GetExtension(startPath));
-        }
+            newPath = Path.Combine(directory, fileNameWithoutExtension + '(' + i + ')' + extension);
 
         if (!File.Exists(newPath))
             return newPath;
 
-        throw new Exception("File naming limit: " + startPath); //TODO handle this
+        newPath = Path.Combine(directory, Guid.NewGuid() + extension);
+        return newPath;
+        // throw new Exception("File naming limit: " + fileName);
     }
 
     private static bool TrySaveDbChanges(DbContext dbContext)
