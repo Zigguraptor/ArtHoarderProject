@@ -73,7 +73,7 @@ internal static class ParserFactory
         }
         catch
         {
-            progressWriter?.Write("File reading error. " + path);
+            progressWriter?.WriteMessage("File reading error. " + path);
             return null;
         }
 
@@ -89,7 +89,7 @@ internal static class ParserFactory
                     parserSettings = JsonSerializer.Deserialize<ParserTypeWSettings>(jsonContent);
                     break;
                 default:
-                    progressWriter?.Write($"Unsupported type {objectType} config path: {path}");
+                    progressWriter?.WriteMessage($"Unsupported type {objectType} config path: {path}");
                     break;
             }
 
@@ -97,7 +97,7 @@ internal static class ParserFactory
         }
         catch
         {
-            progressWriter?.Write("Deserialization error " + path);
+            progressWriter?.WriteMessage("Deserialization error " + path);
             return null;
         }
     }
@@ -141,7 +141,7 @@ internal static class ParserFactory
                 else if (importedSettings.Version < parserSettings.Version)
                     word = "(old)";
 
-                messager.WriteLine(
+                messager.WriteMessage(
                     $"The config for {parserSettings.Host} already exists.\n  Loaded version {parserSettings.Version}\nImported version {importedSettings.Version} {word}");
                 if (!messager.Confirmation("Replace?")) return;
                 File.Delete(fileName);
@@ -163,7 +163,7 @@ internal static class ParserFactory
                     return;
                 }
 
-                messager.WriteLine($"Name error. Check {Constants.ParsersConfigs}");
+                messager.WriteMessage($"Name error. Check {Constants.ParsersConfigs}");
             }
             else
             {
@@ -173,7 +173,7 @@ internal static class ParserFactory
         }
         catch
         {
-            messager.WriteLine("Saving error");
+            messager.WriteMessage("Saving error");
         }
 
         ReloadParsesSettings();
@@ -183,14 +183,14 @@ internal static class ParserFactory
     {
         if (!File.Exists(cfgPath))
         {
-            messager.WriteLine("File not exists.");
+            messager.WriteMessage("File not exists.");
             return;
         }
 
         var importedSettings = DeserializeParserSettings(null, cfgPath);
         if (importedSettings == null)
         {
-            messager.WriteLine("Deserialize error. The imported config is incorrect.");
+            messager.WriteMessage("Deserialize error. The imported config is incorrect.");
             return;
         }
 
@@ -206,7 +206,7 @@ internal static class ParserFactory
                 else if (importedSettings.Version < parserSettings.Version)
                     word = "(old)";
 
-                messager.WriteLine(
+                messager.WriteMessage(
                     $"The config for {parserSettings.Host} already exists.\nLoaded version {parserSettings.Version}\n Imported version {importedSettings.Version} {word}");
                 if (messager.Confirmation("Replace?"))
                     File.Copy(cfgPath, fileName, true);
@@ -226,7 +226,7 @@ internal static class ParserFactory
                     return;
                 }
 
-                messager.WriteLine($"Name error. Check {Constants.ParsersConfigs}");
+                messager.WriteMessage($"Name error. Check {Constants.ParsersConfigs}");
             }
             else
             {
@@ -235,7 +235,7 @@ internal static class ParserFactory
         }
         catch
         {
-            messager.WriteLine("File import error. " + cfgPath);
+            messager.WriteMessage("File import error. " + cfgPath);
         }
     }
 }

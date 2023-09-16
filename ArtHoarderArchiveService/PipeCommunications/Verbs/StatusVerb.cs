@@ -18,6 +18,10 @@ public class StatusVerb : BaseVerb
         var context = archiveContextFactory.CreateArchiveContext(messager, path, this);
         var fileStateSet = context.GetFileStateSet();
         archiveContextFactory.RealiseContext(path, this);
-        messager.WriteLine(fileStateSet.ToString());
+        messager.WriteMessage(fileStateSet.ToString());
+    }
+
+    private void PrintFullArchiveStatus()
+    {
     }
 }

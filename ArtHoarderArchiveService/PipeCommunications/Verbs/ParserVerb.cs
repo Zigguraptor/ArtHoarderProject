@@ -54,7 +54,7 @@ public class ParserVerb : BaseVerb
     {
         if (!ParserFactory.SupportedTypes.TryGetValue(CreateMode!, out var cfgType))
         {
-            messager.WriteLine($"Unknown type \"{CreateMode}\"");
+            messager.WriteMessage($"Unknown type \"{CreateMode}\"");
             return;
         }
 
@@ -74,7 +74,7 @@ public class ParserVerb : BaseVerb
                     propertyInfo.SetValue(cfgInstance, number);
                 else
                 {
-                    messager.WriteLine("\nCan not convert to int");
+                    messager.WriteMessage("\nCan not convert to int");
                     return;
                 }
             }
@@ -114,6 +114,6 @@ public class ParserVerb : BaseVerb
         foreach (var (key, _) in ParserFactory.SupportedTypes)
             msg += key + ", ";
         msg = msg.TrimEnd(' ').TrimEnd(',') + '.';
-        messager.WriteLine(msg);
+        messager.WriteMessage(msg);
     }
 }

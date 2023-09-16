@@ -55,7 +55,7 @@ public sealed class ArchiveContext : IDisposable
     public async Task UpdateAllGalleriesAsync(IMessager statusWriter, bool oldIncluded,
         CancellationToken cancellationToken)
     {
-        statusWriter.WriteLine("Analyze data base...");
+        statusWriter.WriteMessage("Analyze data base...");
         await using var context = new MainDbContext(_workDirectory);
         var groups = context
             .GalleryProfiles
@@ -127,7 +127,7 @@ public sealed class ArchiveContext : IDisposable
                 cancellationToken: cancellationToken).ConfigureAwait(false);
         if (galleryProfile is null)
         {
-            progressWriter.Write($"{galleryUri} not found in db.");
+            progressWriter.WriteMessage($"{galleryUri} not found in db.");
             return;
         }
 
@@ -196,7 +196,7 @@ public sealed class ArchiveContext : IDisposable
         foreach (var name in names)
         {
             if (!TryAddNewUser(name))
-                messager.WriteLine($"\"{name}\" name already exists.");
+                messager.WriteMessage($"\"{name}\" name already exists.");
         }
     }
 
@@ -223,7 +223,7 @@ public sealed class ArchiveContext : IDisposable
             var s = _universalParser.TryGetUserName(uri);
             if (s == null)
             {
-                statusWriter.WriteLine($"Could not determine username. {uri}");
+                statusWriter.WriteMessage($"Could not determine username. {uri}");
                 s = string.Empty;
             }
 
@@ -241,7 +241,7 @@ public sealed class ArchiveContext : IDisposable
         for (var i = 0; i < uris.Count; i++)
         {
             if (!TryAddNewGallery(uris[i], ownerNames[i]))
-                statusWriter.WriteLine($"Gallery \"{uris[i]}\" already exists.");
+                statusWriter.WriteMessage($"Gallery \"{uris[i]}\" already exists.");
         }
     }
 

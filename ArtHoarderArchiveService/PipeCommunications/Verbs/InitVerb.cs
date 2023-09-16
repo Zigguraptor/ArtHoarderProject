@@ -30,10 +30,10 @@ public class InitVerb : BaseVerb
         switch (ArchiveInitialization.CreateArchive(path))
         {
             case CreationCode.Ok:
-                messager.WriteLine("Archive created");
+                messager.WriteMessage("Archive created");
                 break;
             case CreationCode.AlreadyExists:
-                messager.WriteLine("Archive already exists");
+                messager.WriteMessage("Archive already exists");
                 break;
             default:
                 throw new ArgumentOutOfRangeException();

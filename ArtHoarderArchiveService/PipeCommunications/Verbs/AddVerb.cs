@@ -104,7 +104,7 @@ public class AddVerb : BaseVerb
     {
         if (Gallery!.Count % 2 != 0)
         {
-            statusWriter.WriteLine(
+            statusWriter.WriteMessage(
                 "If the autoNames parameter is not used, then the number of arguments must be even. [link] [name]");
             return;
         }
@@ -119,7 +119,7 @@ public class AddVerb : BaseVerb
             }
             else
             {
-                statusWriter.WriteLine($"\"{Gallery[i]}\" is not uri.");
+                statusWriter.WriteMessage($"\"{Gallery[i]}\" is not uri.");
             }
         }
 
@@ -144,7 +144,7 @@ public class AddVerb : BaseVerb
             }
             else
             {
-                statusWriter.WriteLine($"\"{s}\" is not uri.");
+                statusWriter.WriteMessage($"\"{s}\" is not uri.");
             }
         }
 

@@ -37,10 +37,10 @@ internal abstract class Parser
             return;
         }
 
-        progressWriter.Write($"Gallery analysis(May take a long time)... {galleryUri}");
+        progressWriter.WriteMessage($"Gallery analysis(May take a long time)... {galleryUri}");
         var linksTuple = GetNewSubmissionLinks(progressWriter, doc, _parsHandler.GetLastSubmissionUri(galleryUri),
             cancellationToken);
-        progressWriter.Write($"Successfully analyzed {galleryUri}");
+        progressWriter.WriteMessage($"Successfully analyzed {galleryUri}");
 
         var scheduledGalleryUpdateInfo = new ScheduledGalleryUpdateInfo
         {
@@ -70,9 +70,10 @@ internal abstract class Parser
     {
         if (scheduledGalleryUpdateInfo.LastLoadedPage != null)
         {
-            progressWriter.Write($"Gallery analysis(May take a long time)... {scheduledGalleryUpdateInfo.GalleryUri}");
+            progressWriter.WriteMessage(
+                $"Gallery analysis(May take a long time)... {scheduledGalleryUpdateInfo.GalleryUri}");
             var uris = GetOldSubmissionLinks(progressWriter, scheduledGalleryUpdateInfo, cancellationToken);
-            progressWriter.Write($"Successfully analyzed {scheduledGalleryUpdateInfo.GalleryUri}");
+            progressWriter.WriteMessage($"Successfully analyzed {scheduledGalleryUpdateInfo.GalleryUri}");
 
             using var subBar =
                 progressWriter.CreateSubProgressBar(scheduledGalleryUpdateInfo.GalleryUri.ToString(), uris.Count);
@@ -90,9 +91,10 @@ internal abstract class Parser
                 return;
             }
 
-            progressWriter.Write($"Gallery analysis(May take a long time)... {scheduledGalleryUpdateInfo.GalleryUri}");
+            progressWriter.WriteMessage(
+                $"Gallery analysis(May take a long time)... {scheduledGalleryUpdateInfo.GalleryUri}");
             var uris = GetAllSubmissionLinks(progressWriter, doc, cancellationToken);
-            progressWriter.Write($"Successfully analyzed {scheduledGalleryUpdateInfo.GalleryUri}");
+            progressWriter.WriteMessage($"Successfully analyzed {scheduledGalleryUpdateInfo.GalleryUri}");
 
             using var subBar =
                 progressWriter.CreateSubProgressBar(scheduledGalleryUpdateInfo.GalleryUri.ToString(), uris.Count);

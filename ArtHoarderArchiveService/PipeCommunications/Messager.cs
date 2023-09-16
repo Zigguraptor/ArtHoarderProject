@@ -9,6 +9,7 @@ public class Messager : IMessager
 {
     private const char Separator = ' ';
     private const char Insulator = '\"';
+    private const string MsgCommand = "#Msg ";
     private const string UpdatePbCommand = "#Update ";
     private const string LogCommand = "#Log ";
     private const string ReadLineCommand = "#ReadLine";
@@ -67,7 +68,7 @@ public class Messager : IMessager
             _streamString.WriteString(message);
     }
 
-    public void WriteLine(string message)
+    public void WriteMessage(string message)
     {
         lock (_writerSyncRoot)
         {
@@ -76,10 +77,15 @@ public class Messager : IMessager
         }
     }
 
+    public void WriteMessage(MessageType messageType, string message)
+    {
+        Write(MsgCommand + ' ' + messageType + ' ' + message);
+    }
+
     public void WriteLog(string message, LogLevel logLevel)
     {
         message = LogCommand + Escape(logLevel.ToString(), message);
-        WriteLine(LogCommand + logLevel + ' ' + message);
+        WriteMessage(LogCommand + logLevel + ' ' + message);
     }
 
     public ProgressBar CreateNewProgressBar(string name, int max)
@@ -117,7 +123,7 @@ public class Messager : IMessager
     {
         if (_progressBar == null) return;
         var progressBarJson = JsonSerializer.Serialize(_progressBar);
-        WriteLine(UpdatePbCommand + progressBarJson);
+        WriteMessage(UpdatePbCommand + progressBarJson);
     }
 
     private static string Escape(string s)

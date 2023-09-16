@@ -26,7 +26,7 @@ public class ArchiveContextFactory
         var mainFilePath = Path.Combine(path, Constants.ArchiveMainFilePath);
         if (!File.Exists(mainFilePath))
         {
-            progressWriter.WriteLine("Archive not found.");
+            progressWriter.WriteMessage("Archive not found.");
             throw new Exception("Archive not found.");
         }
 
@@ -43,7 +43,7 @@ public class ArchiveContextFactory
             }
         }
 
-        progressWriter.WriteLine("Failed to open file");
+        progressWriter.WriteMessage("Failed to open file");
         throw new Exception("Failed to open file");
     }
 

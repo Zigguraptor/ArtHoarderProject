@@ -271,7 +271,7 @@ internal class ParserTypeW : Parser
         if (page == null)
         {
             const string msg = "Gallery page not found. Possibly an error in \"XpathGalleryUri\"";
-            progressWriter.Write(msg);
+            progressWriter.WriteMessage(msg);
             //TODO log
             return (new List<Uri>(0), "");
         }
