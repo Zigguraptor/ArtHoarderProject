@@ -55,9 +55,9 @@ public class ArchiveContextFactory
                 return container.TakeItem(owner);
 
             var stream = OpenFile(progressWriter, workDirectory);
-            var fileHandler = new FileHandler(_webDownloader, workDirectory);
+            var fileHandler = new FileHandler(workDirectory);
             var logger = _loggerFactory.CreateLogger<ParsingHandler>();
-            var parsingHandler = new ParsingHandler(logger, fileHandler, workDirectory);
+            var parsingHandler = new ParsingHandler(logger, _webDownloader, fileHandler, workDirectory);
             var universalParser = new UniversalParser(parsingHandler, _webDownloader);
             var archiveContext = new ArchiveContext(workDirectory, stream, fileHandler, universalParser);
             container = new OccupiedContainer<ArchiveContext>(archiveContext, owner,

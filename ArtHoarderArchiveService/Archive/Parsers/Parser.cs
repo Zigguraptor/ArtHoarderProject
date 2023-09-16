@@ -105,15 +105,18 @@ internal abstract class Parser
         Uri sourceGalleryUri, string? dirName, CancellationToken cancellationToken)
     {
         Uri? lastSuccessfulSubmission = null; //TODO
-        var channel = Channel.CreateBounded<(HtmlDocument htmlDocument, Uri uri)>(new BoundedChannelOptions(uris.Count)
-        {
-            SingleReader = false,
-            SingleWriter = true
-        });
+        var channel = Channel.CreateBounded<(HtmlDocument htmlDocument, Uri uri)>(
+            new BoundedChannelOptions(Environment.ProcessorCount)
+            {
+                SingleReader = false,
+                SingleWriter = true
+            });
 
-        var producingTask = ProduceAsync(channel.Writer);
-        var consumingTask = ConsumeAsync(channel.Reader);
-        await Task.WhenAll(producingTask, consumingTask);
+        var tasks = new List<Task>();
+        for (var i = 0; i < Environment.ProcessorCount - 1; i++)
+            tasks.Add(ConsumeAsync(channel.Reader));
+        tasks.Add(ProduceAsync(channel.Writer));
+        await Task.WhenAll(tasks);
 
         return lastSuccessfulSubmission;
 
@@ -121,10 +124,18 @@ internal abstract class Parser
         {
             await foreach (var tuple in reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                progressWriter.UpdateBar(tuple.uri.ToString());
-                _parsHandler.RegisterSubmission(
-                    GetSubmission(tuple.htmlDocument, tuple.uri, sourceGalleryUri, cancellationToken),
-                    dirName, cancellationToken);
+                try
+                {
+                    progressWriter.UpdateBar(tuple.uri.ToString());
+                    _parsHandler.RegisterSubmission(
+                        GetSubmission(tuple.htmlDocument, tuple.uri, sourceGalleryUri, cancellationToken),
+                        dirName, cancellationToken);
+                    progressWriter.Write($"{tuple.uri} Loaded");
+                }
+                catch (Exception e)
+                {
+                    LogError($"Register Submission error {tuple.uri}\n{e}");
+                }
             }
         }
 
@@ -137,8 +148,8 @@ internal abstract class Parser
                     var uri = uris[i];
                     if (cancellationToken.IsCancellationRequested) break;
 
+                    progressWriter.Write($"{uri} Extracting");
                     var submissionDocument = WebDownloader.GetHtml(uri, cancellationToken);
-                    progressWriter.Write($"{uri} Loaded");
 
                     if (submissionDocument != null)
                     {

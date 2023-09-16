@@ -1,9 +1,7 @@
 ﻿using System.IO.Hashing;
-using System.Net.Http.Headers;
 using ArtHoarderArchiveService.Archive.DAL;
 using ArtHoarderArchiveService.Archive.DAL.Entities;
 using ArtHoarderArchiveService.Archive.Infrastructure;
-using ArtHoarderArchiveService.Archive.Networking;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArtHoarderArchiveService.Archive;
@@ -11,54 +9,38 @@ namespace ArtHoarderArchiveService.Archive;
 internal class FileHandler : IFileHandler
 {
     private const int FileNameLimit = 1000;
-    private readonly IWebDownloader _webDownloader;
     private readonly PerceptualHashing _perceptualHashing;
 
-    public FileHandler(IWebDownloader webDownloader, string workDirectory)
+    public FileHandler(string workDirectory)
     {
-        _webDownloader = webDownloader;
         _perceptualHashing = new PerceptualHashing(workDirectory);
     }
 
-    public List<(FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders)> CheckOrSaveFiles(
-        string workDirectory, string? localDirectoryName, List<Uri> uris, CancellationToken cancellationToken)
-    {
-        localDirectoryName ??= Constants.DefaultOtherDirectory;
-
-        var result = new List<(FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders)>();
-        foreach (var uri in uris) // Parallel foreach?
-            result.Add(CheckOrSaveFile(workDirectory, localDirectoryName, uri, cancellationToken));
-
-        return result;
-    }
-
-    public (FileMetaInfo fileMetaInfo, Uri fileUri, HttpHeaders httpHeaders) CheckOrSaveFile(
-        string workDirectory, string? localDirectoryName, Uri uri, CancellationToken cancellationToken)
+    public FileMetaInfo SaveFileIfNotExists(Stream fileStream, string workDirectory, string? localDirectoryName,
+        string fileName, CancellationToken cancellationToken)
     {
         localDirectoryName ??= Constants.DefaultOtherDirectory;
 
         var xxHash64 = new XxHash64();
 
-        var responseMessage = _webDownloader.Get(uri, cancellationToken);
         if (cancellationToken.IsCancellationRequested)
-            return new ValueTuple<FileMetaInfo, Uri, HttpHeaders>(null!, null!, null!);
+            return null!;
 
         using var dbContext = new MainDbContext(workDirectory);
-        using var stream = responseMessage.Content.ReadAsStream();
 
-        stream.Position = 0;
-        xxHash64.Append(stream);
+        fileStream.Position = 0;
+        xxHash64.Append(fileStream);
 
         var fileMetaInfo =
             dbContext.FilesMetaInfos.FirstOrDefault(fileInfo => fileInfo.XxHash == xxHash64.GetCurrentHash());
         if (fileMetaInfo != null)
-            return (fileMetaInfo, uri, responseMessage.Headers);
+            return fileMetaInfo;
 
-        var localPath = uri.AbsoluteUri.Split('/', StringSplitOptions.RemoveEmptyEntries)[^1];
+        var localPath = fileName;
         localPath = Path.Combine(workDirectory, Constants.DownloadedMediaDirectory, localDirectoryName, localPath);
 
-        stream.Position = 0;
-        localPath = SaveFile(stream, localPath);
+        fileStream.Position = 0;
+        localPath = SaveFile(fileStream, localPath);
 
         var guid = Guid.NewGuid();
         fileMetaInfo = new FileMetaInfo
@@ -71,10 +53,10 @@ internal class FileHandler : IFileHandler
         dbContext.FilesMetaInfos.Add(fileMetaInfo);
         TrySaveDbChanges(dbContext);
 
-        stream.Position = 0;
-        _perceptualHashing.CalculateHashes(guid, stream);
+        fileStream.Position = 0;
+        _perceptualHashing.CalculateHashes(guid, fileStream);
 
-        return (fileMetaInfo, uri, responseMessage.Headers);
+        return fileMetaInfo;
     }
 
     private string SaveFile(Stream sourceStream, string path)

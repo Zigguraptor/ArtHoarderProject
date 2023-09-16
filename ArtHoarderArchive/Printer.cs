@@ -17,13 +17,43 @@ public static class Printer
     private static int _progressBarsOffset = 0;
     private static ProgressBar? _progressBar = null;
 
+    public static void WriteMessage(MessageType messageType, string message)
+    {
+        SetCursorToStart();
+        switch (messageType)
+        {
+            case MessageType.Extracting:
+                Console.BackgroundColor = ConsoleColor.White;
+                Console.ForegroundColor = ConsoleColor.Black;
+                Console.Write(messageType.ToString());
+                Console.ResetColor();
+                break;
+            case MessageType.Loaded:
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.Write(messageType.ToString());
+                Console.ResetColor();
+                break;
+            default:
+                Console.Write(messageType);
+                break;
+        }
+
+        Console.WriteLine(message);
+        PrintAllBars();
+    }
+
     public static void WriteMessage(string message)
+    {
+        SetCursorToStart();
+        Console.WriteLine(message);
+        PrintAllBars();
+    }
+
+    private static void SetCursorToStart()
     {
         var pos = Console.CursorTop - _progressBarsOffset;
         if (pos < 0) pos = 0;
         Console.SetCursorPosition(0, pos);
-        Console.WriteLine(message);
-        PrintAddBars();
     }
 
     public static void UpdateBar(ProgressBar progressBar)
@@ -32,7 +62,7 @@ public static class Printer
         var pos = Console.CursorTop - _progressBarsOffset;
         if (pos < 0) pos = 0;
         Console.SetCursorPosition(0, pos);
-        PrintAddBars();
+        PrintAllBars();
     }
 
     public static void ClearProgress()
@@ -67,7 +97,7 @@ public static class Printer
     }
 
 
-    private static void PrintAddBars()
+    private static void PrintAllBars()
     {
         if (_progressBar == null) return;
         _progressBarsOffset = 0;

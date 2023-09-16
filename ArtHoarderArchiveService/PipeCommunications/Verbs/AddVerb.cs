@@ -29,38 +29,39 @@ public class AddVerb : BaseVerb
         if (Gallery == null)
         {
             if (UserNames != null) return true;
-            //TODO
-            errors.Add("");
+            errors.Add("Required arguments not specified.");
             return false;
         }
 
         if (AutoNames)
         {
-            if (Gallery.All(link => Uri.TryCreate(link, UriKind.Absolute, out _)))
-                return true;
+            foreach (var link in Gallery)
+            {
+                if (!Uri.TryCreate(link, UriKind.Absolute, out _))
+                {
+                    errors.Add($"\"{link}\" is not uri.");
+                }
+            }
 
-            //TODO
-            errors.Add("");
-            return false;
+            return errors.Any();
         }
 
         if (Gallery.Count % 2 != 0)
         {
-            //TODO
-            errors.Add("");
+            errors.Add(
+                "If the autoNames parameter is not used, then the number of arguments must be even. [link] [name]");
             return false;
         }
 
-        for (var i = 1; i < Gallery.Count; i += 2)
+        for (var i = 0; i < Gallery.Count; i += 2)
         {
-            if (!Uri.TryCreate(Gallery[i], UriKind.Absolute, out _)) continue;
-
-            //TODO
-            errors.Add("");
-            return false;
+            if (!Uri.TryCreate(Gallery[i], UriKind.Absolute, out _))
+            {
+                errors.Add($"\"{Gallery[i]}\" is not uri.");
+            }
         }
 
-        return true;
+        return errors.Any();
     }
 
     public override void Invoke(IMessager messager, ArchiveContextFactory archiveContextFactory, string path,
@@ -90,6 +91,9 @@ public class AddVerb : BaseVerb
 
     private void AddGalleries(IMessager statusWriter, ArchiveContext archiveContext)
     {
+        if (Gallery == null)
+            throw new Exception();
+
         if (!AutoNames)
             AddGalleriesNoAutoNames(statusWriter, archiveContext);
         else
@@ -98,19 +102,16 @@ public class AddVerb : BaseVerb
 
     private void AddGalleriesNoAutoNames(IMessager statusWriter, ArchiveContext archiveContext)
     {
-        if (Gallery == null)
-            throw new Exception();
-
-        var uris = new List<Uri>();
-
-        if (Gallery.Count % 2 != 0)
+        if (Gallery!.Count % 2 != 0)
         {
-            //TODO
-            statusWriter.WriteLine("Args error");
+            statusWriter.WriteLine(
+                "If the autoNames parameter is not used, then the number of arguments must be even. [link] [name]");
             return;
         }
 
-        for (var i = 1; i < Gallery.Count; i += 2)
+        var uris = new List<Uri>();
+
+        for (var i = 0; i < Gallery.Count; i += 2)
         {
             if (Uri.TryCreate(Gallery[i], UriKind.Absolute, out var uri))
             {
@@ -123,7 +124,7 @@ public class AddVerb : BaseVerb
         }
 
         var names = new List<string>(uris.Count);
-        for (var i = 0; i < Gallery.Count; i += 2)
+        for (var i = 1; i < Gallery.Count; i += 2)
         {
             names.Add(Gallery[i]);
         }
@@ -133,11 +134,9 @@ public class AddVerb : BaseVerb
 
     private void AddGalleriesAutoNames(IMessager statusWriter, ArchiveContext archiveContext)
     {
-        if (Gallery == null)
-            throw new Exception();
-
         var uris = new List<Uri>();
-        foreach (var s in Gallery)
+
+        foreach (var s in Gallery!)
         {
             if (Uri.TryCreate(s, UriKind.Absolute, out var uri))
             {

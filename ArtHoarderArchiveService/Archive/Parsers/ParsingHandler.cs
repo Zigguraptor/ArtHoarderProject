@@ -1,5 +1,6 @@
 ﻿using ArtHoarderArchiveService.Archive.DAL;
 using ArtHoarderArchiveService.Archive.DAL.Entities;
+using ArtHoarderArchiveService.Archive.Networking;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArtHoarderArchiveService.Archive.Parsers;
@@ -7,12 +8,15 @@ namespace ArtHoarderArchiveService.Archive.Parsers;
 internal class ParsingHandler : IParsHandler
 {
     private readonly ILogger<ParsingHandler> _logger;
+    private readonly IWebDownloader _webDownloader;
     private readonly FileHandler _fileHandler;
     private readonly string _workDirectory;
 
-    public ParsingHandler(ILogger<ParsingHandler> logger, FileHandler fileHandler, string workDirectory)
+    public ParsingHandler(ILogger<ParsingHandler> logger, IWebDownloader webDownloader, FileHandler fileHandler,
+        string workDirectory)
     {
         _logger = logger;
+        _webDownloader = webDownloader;
         _fileHandler = fileHandler;
         _workDirectory = workDirectory;
     }
@@ -36,9 +40,13 @@ internal class ParsingHandler : IParsHandler
 
         if (galleryProfile.IconFileUri != null)
         {
-            var tuple = _fileHandler.CheckOrSaveFile(_workDirectory, saveFolder, galleryProfile.IconFileUri,
-                cancellationToken);
-            galleryProfile.IconFileGuid = tuple.fileMetaInfo.Guid;
+            var responseMessage = _webDownloader.Get(galleryProfile.IconFileUri, cancellationToken);
+            var stream = responseMessage.Content.ReadAsStream(cancellationToken);
+            var fileName = galleryProfile.IconFileUri.AbsoluteUri.Split('/', StringSplitOptions.RemoveEmptyEntries)[^1];
+
+            var fileMetaInfo =
+                _fileHandler.SaveFileIfNotExists(stream, _workDirectory, saveFolder, fileName, cancellationToken);
+            galleryProfile.IconFileGuid = fileMetaInfo.Guid;
 
             localGalleryProfile.Update(galleryProfile);
             return TrySaveChanges(context);
@@ -55,45 +63,65 @@ internal class ParsingHandler : IParsHandler
             return;
 
         using var context = new MainDbContext(_workDirectory);
-        var localSubmission = context.Submissions.Find(parsedSubmission.Uri);
+        var localSubmission = context.Submissions.Include(s => s.FileMetaInfos)
+            .FirstOrDefault(s => s.Uri == parsedSubmission.Uri);
+
         if (localSubmission == null)
         {
-            context.Submissions.Add(new Submission(parsedSubmission));
-            TrySaveChanges(context);
-            return;
-        }
-
-        if (parsedSubmission.SubmissionFileUris.Count > 0)
-        {
-            if (parsedSubmission.SubmissionFileUris.Count == 1)
+            localSubmission = new Submission(parsedSubmission)
             {
-                var tuple = _fileHandler.CheckOrSaveFile(_workDirectory, saveFolder,
-                    parsedSubmission.SubmissionFileUris[0], cancellationToken);
-                AddOrUpdateSubmissionFileLink(parsedSubmission.Uri, tuple.fileMetaInfo.Guid,
-                    parsedSubmission.SubmissionFileUris[0]);
-            }
-
-            var response =
-                _fileHandler.CheckOrSaveFiles(_workDirectory, saveFolder, parsedSubmission.SubmissionFileUris,
-                    cancellationToken);
-            foreach (var valueTuple in response)
-                AddOrUpdateSubmissionFileLink(parsedSubmission.Uri, valueTuple.fileMetaInfo.Guid, valueTuple.fileUri);
+                FileMetaInfos = new List<FileMetaInfo>()
+            };
+            context.Submissions.Add(localSubmission);
+        }
+        else
+        {
+            localSubmission.Update(parsedSubmission);
         }
 
-        localSubmission.Update(parsedSubmission);
+        if (!TrySaveChanges(context)) return;
+        if (parsedSubmission.SubmissionFileUris.Count <= 0) return;
+
+        var fileMetaInfos = ProcessFiles(parsedSubmission, saveFolder, cancellationToken);
+        UpdateFileMetaInfos(localSubmission.FileMetaInfos, fileMetaInfos);
         TrySaveChanges(context);
+    }
 
-        void AddOrUpdateSubmissionFileLink(Uri uri, Guid guid, Uri fileUri)
+    private FileMetaInfo[] ProcessFiles(ParsedSubmission parsedSubmission, string? saveFolder,
+        CancellationToken cancellationToken)
+    {
+        var fileUris = parsedSubmission.SubmissionFileUris;
+        var fileMetaInfos = new FileMetaInfo[fileUris.Count];
+
+        for (var i = 0; i < fileUris.Count; i++)
         {
-            var local = context.SubmissionFileMetaInfos.Find(uri, guid);
-            if (local == null)
+            var fileUri = fileUris[i];
+            var responseMessage = _webDownloader.Get(fileUri, cancellationToken);
+            var stream = responseMessage.Content.ReadAsStream(cancellationToken);
+            var fileName = fileUri.AbsoluteUri.Split('/', StringSplitOptions.RemoveEmptyEntries)[^1];
+            var fileMetaInfo =
+                _fileHandler.SaveFileIfNotExists(stream, _workDirectory, saveFolder, fileName, cancellationToken);
+
+            if (cancellationToken.IsCancellationRequested) return fileMetaInfos;
+            fileMetaInfos[i] = fileMetaInfo;
+        }
+
+        return fileMetaInfos;
+    }
+
+    private static void UpdateFileMetaInfos(ICollection<FileMetaInfo> localFileMetaInfos,
+        IEnumerable<FileMetaInfo> newFileMetaInfos)
+    {
+        foreach (var fileMetaInfo in newFileMetaInfos)
+        {
+            var localInfo = localFileMetaInfos.FirstOrDefault(i => i.Guid == fileMetaInfo.Guid);
+            if (localInfo != null)
             {
-                context.SubmissionFileMetaInfos.Add(new SubmissionFileMetaInfo(uri, guid, fileUri));
+                localInfo.Update(fileMetaInfo);
             }
             else
             {
-                if (local.FileUri.ToString() != fileUri.ToString())
-                    local.FileUri = fileUri;
+                localFileMetaInfos.Add(fileMetaInfo);
             }
         }
     }

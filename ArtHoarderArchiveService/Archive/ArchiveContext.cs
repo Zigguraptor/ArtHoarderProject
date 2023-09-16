@@ -68,7 +68,7 @@ public sealed class ArchiveContext : IDisposable
                 "All galleries update stage 1/2(newest)");
 
             await Parallel.ForEachAsync(groups, cancellationToken,
-                (group, _) => LightUpdateGroupAsync(progressBar, group, cancellationToken)).ConfigureAwait(false);
+                (group, _) => LightUpdateGroupAsync(progressBar, group, cancellationToken));
 
             progressBar = statusWriter.CreateNewProgressBar("", groups.Count(),
                 "All galleries update stage 2/2(old)");
@@ -86,11 +86,14 @@ public sealed class ArchiveContext : IDisposable
         }
         else
         {
-            var progressBar = statusWriter.CreateNewProgressBar("", groups.Count(),
-                "All galleries update. Only new submissions.");
+            if (groups.Any())
+            {
+                var progressBar = statusWriter.CreateNewProgressBar("", groups.Count(),
+                    "All galleries update. Only new submissions.");
 
-            await Parallel.ForEachAsync(groups, cancellationToken,
-                (group, _) => LightUpdateGroupAsync(progressBar, group, cancellationToken)).ConfigureAwait(false);
+                await Parallel.ForEachAsync(groups, cancellationToken,
+                    (group, _) => LightUpdateGroupAsync(progressBar, group, cancellationToken)).ConfigureAwait(false);
+            }
         }
     }
 
@@ -116,8 +119,7 @@ public sealed class ArchiveContext : IDisposable
 
 
     public async Task LightUpdateGalleryAsync(IProgressWriter progressWriter, Uri galleryUri,
-        CancellationToken cancellationToken,
-        string? directoryName = null)
+        CancellationToken cancellationToken, string? directoryName = null)
     {
         using var context = new MainDbContext(_workDirectory);
         var galleryProfile =
@@ -218,7 +220,14 @@ public sealed class ArchiveContext : IDisposable
         if (names == null) throw new ArgumentNullException(nameof(names));
         foreach (var uri in uris)
         {
-            names.Add(_universalParser.TryGetUserName(uri) ?? string.Empty); //TODO string.Empty is ok? 
+            var s = _universalParser.TryGetUserName(uri);
+            if (s == null)
+            {
+                statusWriter.WriteLine($"Could not determine username. {uri}");
+                s = string.Empty;
+            }
+
+            names.Add(s);
         }
 
         TryAddNewGalleries(statusWriter, uris, names); //TODO

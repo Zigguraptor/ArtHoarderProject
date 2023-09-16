@@ -55,8 +55,9 @@ internal class ParserTypeW : Parser
     protected override ParsedSubmission GetSubmission(HtmlDocument submissionDocument, Uri uri, Uri sourceGallery,
         CancellationToken cancellationToken)
     {
-        return new ParsedSubmission(uri, sourceGallery,
-            GetSubmissionFileUris(submissionDocument, uri, cancellationToken))
+        var fileUris = GetSubmissionFileUris(submissionDocument, uri, cancellationToken);
+
+        return new ParsedSubmission(uri, sourceGallery, fileUris)
         {
             Uri = uri,
             SourceGalleryUri = sourceGallery,
@@ -156,54 +157,82 @@ internal class ParserTypeW : Parser
         return DateTime.MinValue;
     }
 
-    protected virtual List<Uri> GetSubmissionFileUris(HtmlDocument document, Uri uri,
+    protected virtual List<Uri> GetSubmissionFileUris(HtmlDocument htmlDocument, Uri uri,
         CancellationToken cancellationToken)
     {
         var result = new List<Uri>();
-        while (true)
+        if (ParserTypeWSettings.XpathSubmissionNextFile.Length == 0)
         {
-            var node = document.DocumentNode.SelectSingleNode(ParserTypeWSettings.XpathSubmissionFileSrc);
-            if (node != null)
-            {
-                try
-                {
-                    result.Add(new Uri(
-                        "https:" + node.Attributes[ParserTypeWSettings.XpathSubmissionFileSrcAttribute].Value));
-                }
-                catch (Exception e)
-                {
-                    LogWarning(e.ToString());
-                }
-            }
-            else
-            {
-                LogWarning($"\"{uri}\" Submission file src not found");
-                return result;
-            }
-
-            var nextButton = document.DocumentNode.SelectSingleNode(ParserTypeWSettings.XpathSubmissionNextFile)?
-                .Attributes[ParserTypeWSettings.SubmissionNextFileAttribute].Value;
-            if (nextButton != null)
-            {
-                try
-                {
-                    var htmlDocument = WebDownloader.GetHtml(new Uri("https:" + nextButton), cancellationToken);
-                    if (htmlDocument == null) break;
-                    document = htmlDocument;
-                }
-                catch
-                {
-                    break;
-                }
-            }
-            else
-            {
-                break;
-            }
+            var submissionFileUri = GetSubmissionFileUri(htmlDocument, uri);
+            if (submissionFileUri != null) result.Add(submissionFileUri);
+            return result;
         }
 
+        do
+        {
+            var submissionFileUri = GetSubmissionFileUri(htmlDocument, uri);
+            if (submissionFileUri != null) result.Add(submissionFileUri);
+        } while (MoveNextSubmissionFile(ref htmlDocument, cancellationToken));
 
         return result;
+    }
+
+    private Uri? GetSubmissionFileUri(HtmlDocument htmlDocument, Uri uri)
+    {
+        HtmlNode node;
+        try
+        {
+            node = htmlDocument.DocumentNode.SelectSingleNode(ParserTypeWSettings.XpathSubmissionFileSrc);
+        }
+        catch
+        {
+            LogError(
+                $"Node selecting error. XpathSubmissionFileSrc:\"{ParserTypeWSettings.XpathSubmissionFileSrc}\"");
+            return null;
+        }
+
+        if (node == null)
+        {
+            LogError($"\"{uri}\" Submission file src not found");
+            return null;
+        }
+
+        var nodeValue = node.Attributes.FirstOrDefault(attribute =>
+            attribute.Name == ParserTypeWSettings.XpathSubmissionFileSrcAttribute)?.Value;
+
+        if (Uri.TryCreate(nodeValue, UriKind.Absolute, out var fileUri)) return fileUri;
+        LogError($"URI creating error \"{fileUri}\"");
+        return null;
+    }
+
+    private bool MoveNextSubmissionFile(ref HtmlDocument htmlDocument, CancellationToken cancellationToken)
+    {
+        HtmlNode nextButtonNode;
+        try
+        {
+            nextButtonNode =
+                htmlDocument.DocumentNode.SelectSingleNode(ParserTypeWSettings.XpathSubmissionNextFile);
+        }
+        catch
+        {
+            LogWarning("Failed selecting submission next file"); //TODO log html doc
+            return false;
+        }
+
+        var nextButton = nextButtonNode?.Attributes[ParserTypeWSettings.SubmissionNextFileAttribute].Value;
+        if (nextButton == null) return false;
+
+        if (!Uri.TryCreate("https:" + nextButton, UriKind.Absolute, out var uri))
+        {
+            LogError($"URI creating error \"https:{nextButton}\"");
+            return false;
+        }
+
+        var nextHtmlDocument = WebDownloader.GetHtml(uri, cancellationToken);
+        if (nextHtmlDocument == null) return false;
+        htmlDocument = nextHtmlDocument;
+
+        return true;
     }
 
     protected virtual string? GetSubmissionTitle(HtmlDocument document, Uri uri)
