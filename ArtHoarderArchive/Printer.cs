@@ -23,7 +23,7 @@ public static class Printer
         if (pos < 0) pos = 0;
         Console.SetCursorPosition(0, pos);
         Console.WriteLine(message);
-        PrintAddBars();
+        PrintAllBars();
     }
 
     public static void UpdateBar(ProgressBar progressBar)
@@ -32,7 +32,7 @@ public static class Printer
         var pos = Console.CursorTop - _progressBarsOffset;
         if (pos < 0) pos = 0;
         Console.SetCursorPosition(0, pos);
-        PrintAddBars();
+        PrintAllBars();
     }
 
     public static void ClearProgress()
@@ -67,7 +67,7 @@ public static class Printer
     }
 
 
-    private static void PrintAddBars()
+    private static void PrintAllBars()
     {
         if (_progressBar == null) return;
         _progressBarsOffset = 0;
