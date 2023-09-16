@@ -37,10 +37,10 @@ internal abstract class Parser
             return;
         }
 
-        progressWriter.Write($"Gallery analysis(May take a long time)... {galleryUri}");
+        progressWriter.WriteMessage($"Gallery analysis(May take a long time)... {galleryUri}");
         var linksTuple = GetNewSubmissionLinks(progressWriter, doc, _parsHandler.GetLastSubmissionUri(galleryUri),
             cancellationToken);
-        progressWriter.Write($"Successfully analyzed {galleryUri}");
+        progressWriter.WriteMessage($"Successfully analyzed {galleryUri}");
 
         var scheduledGalleryUpdateInfo = new ScheduledGalleryUpdateInfo
         {
@@ -70,9 +70,10 @@ internal abstract class Parser
     {
         if (scheduledGalleryUpdateInfo.LastLoadedPage != null)
         {
-            progressWriter.Write($"Gallery analysis(May take a long time)... {scheduledGalleryUpdateInfo.GalleryUri}");
+            progressWriter.WriteMessage(
+                $"Gallery analysis(May take a long time)... {scheduledGalleryUpdateInfo.GalleryUri}");
             var uris = GetOldSubmissionLinks(progressWriter, scheduledGalleryUpdateInfo, cancellationToken);
-            progressWriter.Write($"Successfully analyzed {scheduledGalleryUpdateInfo.GalleryUri}");
+            progressWriter.WriteMessage($"Successfully analyzed {scheduledGalleryUpdateInfo.GalleryUri}");
 
             using var subBar =
                 progressWriter.CreateSubProgressBar(scheduledGalleryUpdateInfo.GalleryUri.ToString(), uris.Count);
@@ -90,9 +91,10 @@ internal abstract class Parser
                 return;
             }
 
-            progressWriter.Write($"Gallery analysis(May take a long time)... {scheduledGalleryUpdateInfo.GalleryUri}");
+            progressWriter.WriteMessage(
+                $"Gallery analysis(May take a long time)... {scheduledGalleryUpdateInfo.GalleryUri}");
             var uris = GetAllSubmissionLinks(progressWriter, doc, cancellationToken);
-            progressWriter.Write($"Successfully analyzed {scheduledGalleryUpdateInfo.GalleryUri}");
+            progressWriter.WriteMessage($"Successfully analyzed {scheduledGalleryUpdateInfo.GalleryUri}");
 
             using var subBar =
                 progressWriter.CreateSubProgressBar(scheduledGalleryUpdateInfo.GalleryUri.ToString(), uris.Count);
@@ -105,7 +107,7 @@ internal abstract class Parser
         Uri sourceGalleryUri, string? dirName, CancellationToken cancellationToken)
     {
         Uri? lastSuccessfulSubmission = null; //TODO
-        var channel = Channel.CreateBounded<(HtmlDocument htmlDocument, Uri uri)>(
+        var channel = Channel.CreateBounded<ParsedSubmission>(
             new BoundedChannelOptions(Environment.ProcessorCount)
             {
                 SingleReader = false,
@@ -120,56 +122,73 @@ internal abstract class Parser
 
         return lastSuccessfulSubmission;
 
-        async Task ConsumeAsync(ChannelReader<(HtmlDocument htmlDocument, Uri uri)> reader)
+        async Task ConsumeAsync(ChannelReader<ParsedSubmission> reader)
         {
-            await foreach (var tuple in reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            try
             {
-                try
+                await foreach (var parsedSubmission in reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    progressWriter.UpdateBar(tuple.uri.ToString());
-                    _parsHandler.RegisterSubmission(
-                        GetSubmission(tuple.htmlDocument, tuple.uri, sourceGalleryUri, cancellationToken),
-                        dirName, cancellationToken);
-                    progressWriter.Write($"{tuple.uri} Loaded");
+                    progressWriter.UpdateBar(parsedSubmission.Uri.ToString());
+                    try
+                    {
+                        _parsHandler.RegisterSubmission(parsedSubmission, dirName, cancellationToken);
+                    }
+                    catch (Exception e)
+                    {
+                        progressWriter.WriteLog($"Register Submission error {parsedSubmission.Uri}. {e.GetType().Name}",
+                            LogLevel.Error);
+                        LogError(e.ToString());
+                    }
+
+                    progressWriter.WriteMessage(MessageType.Loaded, $"{parsedSubmission.Uri}");
                 }
-                catch (Exception e)
-                {
-                    LogError($"Register Submission error {tuple.uri}\n{e}");
-                }
+            }
+            catch (Exception e)
+            {
+                progressWriter.WriteLog(
+                    "An exception occurred while extracting submissions. Details in the log.",
+                    LogLevel.Critical);
+                LogError(e.ToString());
             }
         }
 
-        async Task ProduceAsync(ChannelWriter<(HtmlDocument htmlDocument, Uri uri)> writer)
+        async Task ProduceAsync(ChannelWriter<ParsedSubmission> writer)
         {
             try
             {
                 for (var i = uris.Count - 1; i >= 0; i--)
                 {
-                    var uri = uris[i];
                     if (cancellationToken.IsCancellationRequested) break;
 
-                    progressWriter.Write($"{uri} Extracting");
-                    var submissionDocument = WebDownloader.GetHtml(uri, cancellationToken);
+                    progressWriter.WriteMessage(MessageType.Extracting, uris[i].ToString());
 
-                    if (submissionDocument != null)
+                    ParsedSubmission? parsedSubmission = null;
+                    try
                     {
-                        await writer.WriteAsync((submissionDocument, uri), cancellationToken);
+                        var submissionDocument =
+                            await WebDownloader.GetHtmlAsync(uris[i], cancellationToken).ConfigureAwait(false);
+                        parsedSubmission = await ParsSubmissionAsync(submissionDocument, uris[i], sourceGalleryUri,
+                            cancellationToken).ConfigureAwait(false);
                     }
-                    else
+                    catch (Exception e)
                     {
-                        var msg = $"\"{uri}\" Failed to load submission html doc. Parsing of this page is canceled.";
-                        progressWriter.WriteLog(msg, LogLevel.Error);
-                        LogError(msg);
+                        Console.WriteLine(e); //TODO move to logger
+                        LogError(e.ToString());
+                        progressWriter.WriteLog($"Failed to extract {uris[i]}. {e.GetType().Name}", LogLevel.Error);
                         progressWriter.UpdateBar();
                     }
+
+                    if (parsedSubmission != null)
+                        await writer.WriteAsync(parsedSubmission, cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (Exception e)
             {
-                //TODO progressWriter
                 var ex = e.ToString();
-                Console.WriteLine(ex);
+                Console.WriteLine(ex); //TODO move to logger
                 LogError(ex);
+                progressWriter.WriteLog("An exception occurred while extracting submissions. Details in the log.",
+                    LogLevel.Critical);
             }
             finally
             {
@@ -180,7 +199,7 @@ internal abstract class Parser
 
     protected abstract GalleryProfile GetProfile(Uri profileUri, HtmlDocument profileDocument);
 
-    protected abstract ParsedSubmission GetSubmission(HtmlDocument htmlDocument, Uri uri, Uri sourceGallery,
+    protected abstract Task<ParsedSubmission> ParsSubmissionAsync(HtmlDocument htmlDocument, Uri uri, Uri sourceGallery,
         CancellationToken cancellationToken);
 
     protected abstract (List<Uri> submissions, string lastPage) GetNewSubmissionLinks(IProgressWriter progressWriter,

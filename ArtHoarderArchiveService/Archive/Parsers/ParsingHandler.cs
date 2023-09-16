@@ -38,14 +38,15 @@ internal class ParsingHandler : IParsHandler
             return TrySaveChanges(context);
         }
 
+        //TODO trow ex if avatar saving failed
         if (galleryProfile.IconFileUri != null)
         {
             var responseMessage = _webDownloader.Get(galleryProfile.IconFileUri, cancellationToken);
-            var stream = responseMessage.Content.ReadAsStream(cancellationToken);
+            var avatar = responseMessage.Content.ReadAsByteArrayAsync(cancellationToken).Result;
             var fileName = galleryProfile.IconFileUri.AbsoluteUri.Split('/', StringSplitOptions.RemoveEmptyEntries)[^1];
 
             var fileMetaInfo =
-                _fileHandler.SaveFileIfNotExists(stream, _workDirectory, saveFolder, fileName, cancellationToken);
+                _fileHandler.SaveFileIfNotExists(avatar, _workDirectory, saveFolder, fileName, cancellationToken);
             galleryProfile.IconFileGuid = fileMetaInfo.Guid;
 
             localGalleryProfile.Update(galleryProfile);
@@ -80,7 +81,7 @@ internal class ParsingHandler : IParsHandler
         }
 
         if (!TrySaveChanges(context)) return;
-        if (parsedSubmission.SubmissionFileUris.Count <= 0) return;
+        if (parsedSubmission.SubmissionFiles.Length <= 0) return;
 
         var fileMetaInfos = ProcessFiles(parsedSubmission, saveFolder, cancellationToken);
         UpdateFileMetaInfos(localSubmission.FileMetaInfos, fileMetaInfos);
@@ -90,17 +91,15 @@ internal class ParsingHandler : IParsHandler
     private FileMetaInfo[] ProcessFiles(ParsedSubmission parsedSubmission, string? saveFolder,
         CancellationToken cancellationToken)
     {
-        var fileUris = parsedSubmission.SubmissionFileUris;
-        var fileMetaInfos = new FileMetaInfo[fileUris.Count];
+        var extractedFiles = parsedSubmission.SubmissionFiles;
+        var fileMetaInfos = new FileMetaInfo[extractedFiles.Length];
 
-        for (var i = 0; i < fileUris.Count; i++)
+        for (var i = 0; i < extractedFiles.Length; i++)
         {
-            var fileUri = fileUris[i];
-            var responseMessage = _webDownloader.Get(fileUri, cancellationToken);
-            var stream = responseMessage.Content.ReadAsStream(cancellationToken);
-            var fileName = fileUri.AbsoluteUri.Split('/', StringSplitOptions.RemoveEmptyEntries)[^1];
-            var fileMetaInfo =
-                _fileHandler.SaveFileIfNotExists(stream, _workDirectory, saveFolder, fileName, cancellationToken);
+            var fileName = extractedFiles[i].Uri.AbsoluteUri;
+            fileName = fileName[(fileName.LastIndexOf('/') + 1)..];
+            var fileMetaInfo = _fileHandler.SaveFileIfNotExists(extractedFiles[i].Bytes, _workDirectory, saveFolder,
+                fileName, cancellationToken);
 
             if (cancellationToken.IsCancellationRequested) return fileMetaInfos;
             fileMetaInfos[i] = fileMetaInfo;

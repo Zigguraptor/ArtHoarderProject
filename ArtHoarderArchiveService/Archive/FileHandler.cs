@@ -16,72 +16,72 @@ internal class FileHandler : IFileHandler
         _perceptualHashing = new PerceptualHashing(workDirectory);
     }
 
-    public FileMetaInfo SaveFileIfNotExists(Stream fileStream, string workDirectory, string? localDirectoryName,
+    public FileMetaInfo SaveFileIfNotExists(ReadOnlySpan<byte> readOnlySpan, string workDirectory,
+        string? relativeDirectoryName,
         string fileName, CancellationToken cancellationToken)
     {
-        localDirectoryName ??= Constants.DefaultOtherDirectory;
+        if (cancellationToken.IsCancellationRequested) return null!;
 
-        var xxHash64 = new XxHash64();
+        var hash = XxHash64.Hash(readOnlySpan);
 
-        if (cancellationToken.IsCancellationRequested)
-            return null!;
+        if (cancellationToken.IsCancellationRequested) return null!;
 
         using var dbContext = new MainDbContext(workDirectory);
-
-        fileStream.Position = 0;
-        xxHash64.Append(fileStream);
-
-        var fileMetaInfo =
-            dbContext.FilesMetaInfos.FirstOrDefault(fileInfo => fileInfo.XxHash == xxHash64.GetCurrentHash());
+        var fileMetaInfo = dbContext.FilesMetaInfos.FirstOrDefault(fileInfo => fileInfo.XxHash == hash);
         if (fileMetaInfo != null)
             return fileMetaInfo;
 
-        var localPath = fileName;
-        localPath = Path.Combine(workDirectory, Constants.DownloadedMediaDirectory, localDirectoryName, localPath);
+        relativeDirectoryName ??= Constants.DefaultOtherDirectory;
+        var localPath = Path.Combine(workDirectory, Constants.DownloadedMediaDirectory, relativeDirectoryName);
 
-        fileStream.Position = 0;
-        localPath = SaveFile(fileStream, localPath);
-
-        var guid = Guid.NewGuid();
-        fileMetaInfo = new FileMetaInfo
-        {
-            Guid = guid,
-            LocalFilePath = localPath,
-            XxHash = xxHash64.GetCurrentHash(),
-            FirstSaveTime = Time.NowUtcDataTime()
-        };
+        localPath = SaveFile(localPath, fileName, readOnlySpan);
+        fileMetaInfo = CreateFileMetaInfo(localPath, hash);
         dbContext.FilesMetaInfos.Add(fileMetaInfo);
         TrySaveDbChanges(dbContext);
-
-        fileStream.Position = 0;
-        _perceptualHashing.CalculateHashes(guid, fileStream);
+        _perceptualHashing.CalculateHashes(fileMetaInfo.Guid, readOnlySpan);
 
         return fileMetaInfo;
     }
 
-    private string SaveFile(Stream sourceStream, string path)
+    private FileMetaInfo CreateFileMetaInfo(string path, byte[] hash)
     {
-        path = GetFreeFileName(path);
-        Directory.CreateDirectory(Path.GetDirectoryName(path) ?? string.Empty);
-
-        using var localFileStream = File.Create(path);
-        sourceStream.CopyTo(localFileStream);
-        return path;
+        return new FileMetaInfo
+        {
+            Guid = Guid.NewGuid(),
+            LocalFilePath = path,
+            XxHash = hash,
+            FirstSaveTime = Time.NowUtcDataTime()
+        };
     }
 
-    private static string GetFreeFileName(string startPath)
+    private static string SaveFile(string directory, string fileName, ReadOnlySpan<byte> readOnlySpan)
     {
-        var newPath = startPath;
+        Directory.CreateDirectory(directory);
+        var localPath = GetFreeFilePath(directory, fileName);
+        using var fileStream = File.Create(localPath);
+        fileStream.Write(readOnlySpan);
+        return localPath;
+    }
+
+    private static string GetFreeFilePath(string directory, string fileName)
+    {
+        var newPath = Path.Combine(directory, fileName);
+
+        if (!File.Exists(newPath)) return newPath;
+
+        var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+        var extension = Path.GetExtension(fileName);
+
         for (var i = 1; File.Exists(newPath) && i < FileNameLimit; i++)
-        {
-            newPath = Path.Combine(Path.GetDirectoryName(startPath) ?? string.Empty,
-                Path.GetFileNameWithoutExtension(startPath) + $"({i:D})" + Path.GetExtension(startPath));
-        }
+            newPath = Path.Combine(directory, fileNameWithoutExtension + '(' + i + ')' + extension);
 
         if (!File.Exists(newPath))
             return newPath;
 
-        throw new Exception("File naming limit: " + startPath); //TODO handle this
+        newPath = Path.Combine(directory, Guid.NewGuid() + extension);
+        return newPath;
+
+        // throw new Exception("File naming limit: " + fileName);
     }
 
     private static bool TrySaveDbChanges(DbContext dbContext)
