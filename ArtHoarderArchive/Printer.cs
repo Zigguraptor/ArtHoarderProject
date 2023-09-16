@@ -19,11 +19,16 @@ public static class Printer
 
     public static void WriteMessage(string message)
     {
+        SetCursorToStart();
+        Console.WriteLine(message);
+        PrintAllBars();
+    }
+
+    private static void SetCursorToStart()
+    {
         var pos = Console.CursorTop - _progressBarsOffset;
         if (pos < 0) pos = 0;
         Console.SetCursorPosition(0, pos);
-        Console.WriteLine(message);
-        PrintAllBars();
     }
 
     public static void UpdateBar(ProgressBar progressBar)
