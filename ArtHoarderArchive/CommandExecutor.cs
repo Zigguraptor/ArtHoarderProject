@@ -5,6 +5,12 @@ namespace ArtHoarderArchive;
 
 public class CommandExecutor
 {
+    private const string MsgCommand = "#Msg ";
+    private const string PrintFileCommand = "#PrintFile ";
+    private const string UpdatePbCommand = "#Update ";
+    private const string LogCommand = "#Log ";
+    private const string ReadLineCommand = "#ReadLine";
+
     private readonly StreamString _streamString;
 
     public CommandExecutor(StreamString streamString)
@@ -14,19 +20,45 @@ public class CommandExecutor
 
     public void ExecuteCommand(string command)
     {
-        if (command.StartsWith("#Log "))
+        if (command.StartsWith(MsgCommand))
         {
-            ParsLog(command[5..]);
+            ParsMsg(command[MsgCommand.Length..]);
         }
-        else if (command.StartsWith("#Update "))
+        else if (command.StartsWith(LogCommand))
         {
-            ParsUpdateProgress(command[8..]);
+            ParsLog(command[LogCommand.Length..]);
         }
-        else if (command == "#ReadLine")
+        else if (command.StartsWith(UpdatePbCommand))
+        {
+            ParsUpdateProgress(command[UpdatePbCommand.Length..]);
+        }
+        else if (command.StartsWith(PrintFileCommand))
+        {
+            foreach (var line in File.ReadLines(command[PrintFileCommand.Length..]))
+            {
+                Console.WriteLine(line);
+            }
+        }
+        else if (command == ReadLineCommand)
         {
             var line = Console.ReadLine();
             if (line != null)
                 _streamString.WriteString(line);
+        }
+        else if (command.StartsWith("#"))
+        {
+        }
+    }
+
+    private static void ParsMsg(string command)
+    {
+        if (Enum.TryParse(command[..command.IndexOf(' ')], out MessageType msgType))
+        {
+            Printer.WriteMessage(msgType, command[(command.IndexOf(' ') + 1)..]);
+        }
+        else
+        {
+            Printer.WriteMessage(command);
         }
     }
 
