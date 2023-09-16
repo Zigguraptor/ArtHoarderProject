@@ -17,6 +17,31 @@ public static class Printer
     private static int _progressBarsOffset = 0;
     private static ProgressBar? _progressBar = null;
 
+    public static void WriteMessage(MessageType messageType, string message)
+    {
+        SetCursorToStart();
+        switch (messageType)
+        {
+            case MessageType.Extracting:
+                Console.BackgroundColor = ConsoleColor.White;
+                Console.ForegroundColor = ConsoleColor.Black;
+                Console.Write(messageType.ToString());
+                Console.ResetColor();
+                break;
+            case MessageType.Loaded:
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.Write(messageType.ToString());
+                Console.ResetColor();
+                break;
+            default:
+                Console.Write(messageType);
+                break;
+        }
+
+        Console.WriteLine(message);
+        PrintAllBars();
+    }
+
     public static void WriteMessage(string message)
     {
         SetCursorToStart();
