@@ -80,7 +80,7 @@ public class Messager : IMessager
 
     public void WriteMessage(MessageType messageType, string message)
     {
-        Write(MsgCommand + ' ' + messageType + ' ' + message);
+        Write(MsgCommand + messageType + ' ' + message);
     }
 
     public void WriteLog(string message, LogLevel logLevel)
