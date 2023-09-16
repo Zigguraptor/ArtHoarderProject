@@ -38,6 +38,7 @@ public static class Printer
                 break;
         }
 
+        Console.Write(' ');
         Console.WriteLine(message);
         PrintAllBars();
     }
