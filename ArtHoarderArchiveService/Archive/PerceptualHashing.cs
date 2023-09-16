@@ -52,9 +52,9 @@ internal class PerceptualHashing
         }
     }
 
-    public void CalculateHashes(Guid guid, Stream stream)
+    public void CalculateHashes(Guid guid, ReadOnlySpan<byte> imageBytes)
     {
-        var image = Image.Load<Rgb24>(stream);
+        var image = Image.Load<Rgb24>(imageBytes);
         var lowImage = CompressImage(image);
         CalculateHashes(guid, lowImage);
     }

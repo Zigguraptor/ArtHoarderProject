@@ -4,6 +4,6 @@ namespace ArtHoarderArchiveService.Archive.Infrastructure;
 
 public interface IFileHandler
 {
-    FileMetaInfo SaveFileIfNotExists(Stream fileStream, string workDirectory, string? localDirectoryName,
+    FileMetaInfo SaveFileIfNotExists(ReadOnlySpan<byte> readOnlySpan, string workDirectory, string? relativeDirectoryName,
         string fileName, CancellationToken cancellationToken);
 }

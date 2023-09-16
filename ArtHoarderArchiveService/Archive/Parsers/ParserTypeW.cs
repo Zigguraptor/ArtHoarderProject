@@ -52,12 +52,20 @@ internal class ParserTypeW : Parser
         };
     }
 
-    protected override ParsedSubmission GetSubmission(HtmlDocument submissionDocument, Uri uri, Uri sourceGallery,
-        CancellationToken cancellationToken)
+    protected override async Task<ParsedSubmission> ParsSubmissionAsync(HtmlDocument submissionDocument, Uri uri,
+        Uri sourceGallery, CancellationToken cancellationToken)
     {
         var fileUris = GetSubmissionFileUris(submissionDocument, uri, cancellationToken);
+        var extractedBytes = new ExtractedBytes[fileUris.Count];
 
-        return new ParsedSubmission(uri, sourceGallery, fileUris)
+        for (var i = 0; i < fileUris.Count; i++)
+        {
+            var fileBytes = await WebDownloader.Get(fileUris[i], cancellationToken).Content
+                .ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+            extractedBytes[i] = new ExtractedBytes(fileUris[i], fileBytes);
+        }
+
+        return new ParsedSubmission(uri, sourceGallery, extractedBytes)
         {
             Uri = uri,
             SourceGalleryUri = sourceGallery,
