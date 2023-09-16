@@ -70,7 +70,10 @@ public class Messager : IMessager
     public void WriteLine(string message)
     {
         lock (_writerSyncRoot)
-            _streamString.WriteString(message + '\n');
+        {
+            _streamString.WriteString(message);
+            _streamString.WriteString("\n");
+        }
     }
 
     public void WriteLog(string message, LogLevel logLevel)
