@@ -10,6 +10,7 @@ public class Messager : IMessager
     private const char Separator = ' ';
     private const char Insulator = '\"';
     private const string MsgCommand = "#Msg ";
+    private const string PrintFileCommand = "#PrintFile ";
     private const string UpdatePbCommand = "#Update ";
     private const string LogCommand = "#Log ";
     private const string ReadLineCommand = "#ReadLine";
@@ -106,6 +107,11 @@ public class Messager : IMessager
     {
         _progressBar = null;
         UpdateProgressBar();
+    }
+
+    public void WriteFile(string path)
+    {
+        Write(PrintFileCommand + path);
     }
 
     public void UpdateProgressBar() //TODO test it

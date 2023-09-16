@@ -12,4 +12,5 @@ public interface IMessager
     public ProgressBar CreateNewProgressBar(string name, int max, string msg);
     public void UpdateProgressBar();
     public void ClearProgressBars();
+    void WriteFile(string path);
 }
